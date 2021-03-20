@@ -30,3 +30,18 @@
 *.exe
 *.out
 *.app
+
+# Local files
+Makefile.lcl
+
+# VS stuff
+.vs
+*.user
+*.suo
+*.sdf
+ipch
+Debug
+Release
+jpeg
+png
+zlib
