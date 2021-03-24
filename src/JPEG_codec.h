@@ -9,11 +9,11 @@
 #if !defined(JPEG_CODEC_H)
 #define JPEG_CODEC_H
 
-#include "ahtse.h"
+#include "icd_codecs.h"
 #include "BitMask2D.h"
 #include <setjmp.h>
 
-NS_AHTSE_START
+NS_ICD_START
 
 // Could be used for short int, so make it a template
 template<typename T> static int apply_mask(BitMap2D<> *bm, T *ps, int nc = 3, int line_stride = 0) {
@@ -58,6 +58,5 @@ DLL_LOCAL const char *jpeg8_encode(jpeg_params &params, storage_manager &src, st
 DLL_LOCAL const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, void *buffer);
 DLL_LOCAL const char *jpeg12_encode(jpeg_params &params, storage_manager &src, storage_manager &dst);
 
-NS_AHTSE_END
-
+NS_END
 #endif

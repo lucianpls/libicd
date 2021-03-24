@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <string>
 
-NS_AHTSE_START
+NS_ICD_START
 
 // Look for the JPEG precision, also check a couple of major structural issues
 static int get_precision(storage_manager &src)
@@ -75,7 +75,7 @@ static int get_precision(storage_manager &src)
 }
 
 // Dispatcher for 8 or 12 bit jpeg decoder
-const char *jpeg_stride_decode(codec_params &params, storage_manager &src, void *buffer)
+const char* jpeg_stride_decode(codec_params& params, storage_manager& src, void* buffer)
 {
     int precision = get_precision(src);
     switch (precision) {
@@ -91,7 +91,7 @@ const char *jpeg_stride_decode(codec_params &params, storage_manager &src, void 
 const char *jpeg_encode(jpeg_params &params, storage_manager &src, storage_manager &dst)
 {
     const char* message = nullptr;
-    switch (getTypeSize(params.dt)) {
+    switch (getTypeSize(params.raster.dt)) {
     case 1:
         message = jpeg8_encode(params, src, dst);
         break;
@@ -115,11 +115,11 @@ const char *jpeg_encode(jpeg_params &params, storage_manager &src, storage_manag
     return message;
 }
 
-int set_jpeg_params(const TiledRaster& raster, codec_params* params) {
+int set_jpeg_params(const Raster& raster, codec_params* params)
+{
     memset(params, 0, sizeof(codec_params));
-    params->size = raster.pagesize;
-    params->dt = raster.datatype;
+    params->raster = raster;
     return 0;
 }
 
-NS_AHTSE_END
+NS_END // ICD

@@ -7,11 +7,11 @@
 * (C)Lucian Plesea 2016-2020
 */
 
-#include "ahtse.h"
+#include "icd_codecs.h"
 #include <vector>
 #include <png.h>
 
-NS_AHTSE_START
+NS_ICD_START
 
 // TODO: Add palette PNG support, possibly other fancy options
 
@@ -32,15 +32,15 @@ static void pngEH(png_structp pngp, png_const_charp message)
 // Read memory handler for PNG
 static void get_data(png_structp pngp, png_bytep data, png_size_t length)
 {
-    storage_manager *src = static_cast<storage_manager *>(png_get_io_ptr(pngp));
+    storage_manager *src = reinterpret_cast<storage_manager *>(png_get_io_ptr(pngp));
     if (static_cast<png_size_t>(src->size) < length) {
         codec_params* params = (codec_params*)(png_get_error_ptr(pngp));
         strcpy(params->error_message, "PNG decode expects more data than given");
         longjmp(png_jmpbuf(pngp), 1);
     }
     memcpy(data, src->buffer, length);
-    src->buffer += length;
-    src->size -= static_cast<int>(length);
+    src->buffer = reinterpret_cast<char*>(src->buffer) + length;
+    src->size -= length;
 }
 
 // Write memory handler for PNG
@@ -53,8 +53,8 @@ static void store_data(png_structp pngp, png_bytep data, png_size_t length)
         longjmp(png_jmpbuf(pngp), 1);
     }
     memcpy(dst->buffer, data, length);
-    dst->buffer += length;
-    dst->size -= static_cast<int>(length);
+    dst->buffer = reinterpret_cast<char*>(dst->buffer) + length;
+    dst->size -= length;
 }
 
 const char *png_stride_decode(codec_params &params, storage_manager &src, void *buffer)
@@ -80,14 +80,15 @@ const char *png_stride_decode(codec_params &params, storage_manager &src, void *
 
     png_get_IHDR(pngp, infop, &width, &height, &bit_depth, &ct, NULL, NULL, NULL);
 
-    if (static_cast<png_uint_32>(params.size.y) != height
-        || static_cast<png_uint_32>(params.size.x) != width) {
+    auto const& rsize = params.raster.size;
+    if (rsize.y != static_cast<size_t>(height)
+        || rsize.x != static_cast<size_t>(width)) {
         strcpy(params.error_message, "Input PNG has the wrong size");
         longjmp(png_jmpbuf(pngp), 1);
     }
 
-    if ((params.dt == AHTSE_Byte && bit_depth != 8) ||
-        ((params.dt == AHTSE_UInt16 || params.dt == AHTSE_Int16) && bit_depth != 16)) {
+    if ((params.raster.dt == ICDT_Byte && bit_depth != 8) ||
+        ((params.raster.dt == ICDT_UInt16 || params.raster.dt == ICDT_Int16) && bit_depth != 16)) {
         strcpy(params.error_message, "Input PNG has the wrong type");
         longjmp(png_jmpbuf(pngp), 1);
     }
@@ -108,7 +109,7 @@ const char *png_stride_decode(codec_params &params, storage_manager &src, void *
     if (0 == line_stride)
         line_stride = png_get_rowbytes(pngp, infop);
 
-    std::vector<png_bytep> png_rowp(static_cast<int>(params.size.y));
+    std::vector<png_bytep> png_rowp(rsize.y);
     for (size_t i = 0; i < png_rowp.size(); i++) // line_stride is always in bytes
         png_rowp[i] = reinterpret_cast<png_bytep>(
             static_cast<char*>(buffer) + i * line_stride);
@@ -124,8 +125,9 @@ const char *png_encode(png_params &params, storage_manager &src, storage_manager
 {
     png_structp pngp = nullptr;
     png_infop infop = nullptr;
-    png_uint_32 width = static_cast<png_uint_32>(params.size.x);
-    png_uint_32 height = static_cast<png_uint_32>(params.size.y);
+    auto const& rsize = params.raster.size;
+    png_uint_32 width = static_cast<png_uint_32>(rsize.x);
+    png_uint_32 height = static_cast<png_uint_32>(rsize.y);
     // Use a vector so it cleans up itself
     std::vector<png_bytep> png_rowp(height);
 
@@ -163,7 +165,7 @@ const char *png_encode(png_params &params, storage_manager &src, storage_manager
 
     auto rowbytes = png_get_rowbytes(pngp, infop);
     for (size_t i = 0; i < png_rowp.size(); i++)
-        png_rowp[i] = reinterpret_cast<png_bytep>(src.buffer + i * rowbytes);
+        png_rowp[i] = reinterpret_cast<png_bytep>(src.buffer) + i * rowbytes;
 
     png_write_info(pngp, infop);
     png_write_image(pngp, png_rowp.data());
@@ -175,17 +177,16 @@ const char *png_encode(png_params &params, storage_manager &src, storage_manager
     return nullptr;
 }
 
-int set_png_params(const TiledRaster &raster, png_params *params) {
+int set_png_params(const Raster &raster, png_params *params) {
     // Pick some defaults
     // Only handles 8 or 16 bits
     memset(params, 0, sizeof(png_params));
-    params->size = raster.pagesize;
-    params->dt = raster.datatype;
-    params->bit_depth = (params->dt == AHTSE_Byte) ? 8 : 16;
+    params->raster = raster;
+    params->bit_depth = (raster.dt == ICDT_Byte) ? 8 : 16;
     params->compression_level = 6;
-    params->has_transparency = FALSE;
+    params->has_transparency = false;
 
-    switch (raster.pagesize.c) {
+    switch (raster.size.c) {
     case 1:
         params->color_type = PNG_COLOR_TYPE_GRAY;
         break;
@@ -202,4 +203,4 @@ int set_png_params(const TiledRaster &raster, png_params *params) {
     return 0;
 }
 
-NS_AHTSE_END
+NS_END

@@ -14,7 +14,7 @@ extern "C" {
 #include "jpeg12-6b/jerror.h"
 }
 
-NS_AHTSE_START
+NS_ICD_START
 
 static void emitMessage(j_common_ptr cinfo, int msgLevel);
 static void errorExit(j_common_ptr cinfo);
@@ -144,7 +144,7 @@ const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, voi
         "Message buffer too small");
     params.error_message[0] = 0; // Clear errors
 
-    if (getTypeSize(params.dt) != AHTSE_UInt16) {
+    if (getTypeSize(params.raster.dt) != ICDT_UInt16) {
         sprintf(params.error_message, "JPEG12 decode called with wrong datatype");
         return params.error_message;
     }
@@ -183,7 +183,8 @@ const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, voi
     jpeg_read_header(&cinfo, TRUE);
     cinfo.dct_method = JDCT_FLOAT;
 
-    if (!(params.size.c == 1 || params.size.c == 3))
+    const sz& size = params.raster.size;
+    if (!(size.c == 1 || size.c == 3))
         sprintf(params.error_message, "JPEG with wrong number of components");
 
     if (jpeg_has_multiple_scans(&cinfo) || cinfo.arith_code)
@@ -192,17 +193,17 @@ const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, voi
     if (cinfo.data_precision != 12)
         sprintf(params.error_message, "jpeg12_decode called on non-12bit input");
 
-    if (cinfo.image_width != params.size.x || cinfo.image_height != params.size.y)
+    if (cinfo.image_width != size.x || cinfo.image_height != size.y)
         sprintf(params.error_message, "Wrong JPEG size on input");
 
-    apr_uint64_t line_stride = params.line_stride;
+    auto line_stride = params.line_stride;
     if (0 == line_stride) // use default stride
-        line_stride = params.size.c * params.size.x * 2;
+        line_stride = getTypeSize(params.raster.dt, size.c * size.x);
 
     // Only if the error message hasn't been set already
     if (params.error_message[0] == 0) {
         // Force output to desired number of channels
-        cinfo.out_color_space = (params.size.c == 3) ? JCS_RGB : JCS_GRAYSCALE;
+        cinfo.out_color_space = (size.c == 3) ? JCS_RGB : JCS_GRAYSCALE;
         jpeg_start_decompress(&cinfo);
         while (cinfo.output_scanline < cinfo.image_height) {
             // Do the math in bytes, because line_stride is in bytes
@@ -226,8 +227,8 @@ const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, voi
     if (nullptr != jh.zenChunk.buffer) {
         // Mask defaults to full
         BitMap2D<> bm(
-            static_cast<unsigned int>(params.size.x),
-            static_cast<unsigned int>(params.size.y));
+            static_cast<unsigned int>(size.x),
+            static_cast<unsigned int>(size.y));
 
         // A zero size zen chunk means all pixels are not black, matching the full mask
         if (jh.zenChunk.size != 0) { // Read the mask from the chunk only for partial masks
@@ -241,8 +242,8 @@ const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, voi
 
         params.modified = apply_mask(&bm,
             reinterpret_cast<JSAMPROW>(buffer),
-            static_cast<int>(params.size.c),
-            static_cast<int>(params.line_stride));
+            static_cast<int>(size.c),
+            static_cast<int>(line_stride));
     }
 
     return nullptr; // nullptr on success
@@ -255,7 +256,7 @@ const char *jpeg12_encode(jpeg_params &params, storage_manager &src, storage_man
     jpeg_error_mgr err;
     JPGHandle jh;
     jpeg_destination_mgr mgr;
-    int linesize;
+    size_t linesize;
     JSAMPLE *rp[2];
 
     memset(&jh, 0, sizeof(jh));
@@ -278,13 +279,14 @@ const char *jpeg12_encode(jpeg_params &params, storage_manager &src, storage_man
         jpeg_destroy_compress(&cinfo);
         return params.error_message;
     }
+    auto const& rsize = params.raster.size;
 
     jpeg_create_compress(&cinfo);
     cinfo.dest = &mgr;
-    cinfo.image_width = static_cast<JDIMENSION>(params.size.x);
-    cinfo.image_height = static_cast<JDIMENSION>(params.size.y);
-    cinfo.input_components = static_cast<int>(params.size.c);
-    cinfo.in_color_space = (params.size.c == 3) ? JCS_RGB : JCS_GRAYSCALE;
+    cinfo.image_width = static_cast<JDIMENSION>(rsize.x);
+    cinfo.image_height = static_cast<JDIMENSION>(rsize.y);
+    cinfo.input_components = static_cast<int>(rsize.c);
+    cinfo.in_color_space = (rsize.c == 3) ? JCS_RGB : JCS_GRAYSCALE;
 
     jpeg_set_defaults(&cinfo);
 
@@ -307,4 +309,4 @@ const char *jpeg12_encode(jpeg_params &params, storage_manager &src, storage_man
         params.error_message : nullptr;
 }
 
-NS_AHTSE_END
+NS_END

@@ -8,13 +8,16 @@
 * Lerc1 is only little endian, it should not be compiled on big endian machines
 */
 
-#include "ahtse.h"
-static_assert(!APR_IS_BIGENDIAN, "Lerc 1 only works on little endian CPUs");
+#include "icd_codecs.h"
+#if !defined(NEED_SWAP)
+#error Lerc 1 only works in little endian
+#endif
 
-#include "Lerc1Image.h"
+#include "lerc1/Lerc1Image.h"
+#include <string>
 
 USING_NAMESPACE_LERC1
-NS_AHTSE_START
+NS_ICD_START
 
 
 // Read an unaligned 4 byte little endian int from location p, advances pointer
@@ -29,16 +32,17 @@ static void READ_FLOAT(float& X, const char*& p) {
     p += sizeof(float);
 }
 
-// Arbitrary epsilon, just like gdal CPLIsEqual()
+// Arbitrary epsilon
 static bool FIsEqual(float v1, float v2) {
     return abs(v1 - v2) < 1e-12;
 }
 
 template<typename T> static void Lerc1ImgFill(Lerc1Image& zImg, T* src, const lerc_params &params) {
-    int w = static_cast<int>(params.size.x);
-    int h = static_cast<int>(params.size.y);
+    auto const& rsize = params.raster.size;
+    int w = static_cast<int>(rsize.x);
+    int h = static_cast<int>(rsize.y);
     zImg.resize(w, h);
-    const float ndv = static_cast<float>(params.ndv);
+    const auto ndv = static_cast<float>(params.raster.ndv);
     for (int row = 0; row < h; row++)
         for (int col = 0; col < w; col++) {
             auto val = static_cast<float>(*src++);
@@ -50,14 +54,14 @@ template<typename T> static void Lerc1ImgFill(Lerc1Image& zImg, T* src, const le
 const char* lerc_encode(lerc_params& params, storage_manager& src, storage_manager& dst) {
     Lerc1Image zImg;
 
-    switch (params.dt) {
+    switch (params.raster.dt) {
 #define FILL(T) Lerc1ImgFill(zImg, reinterpret_cast<T *>(src.buffer), params)
-    case AHTSE_Byte: FILL(uint8_t); break;
-    case AHTSE_UInt16: FILL(uint16_t); break;
-    case AHTSE_Int16: FILL(int16_t); break;
-    case AHTSE_UInt32: FILL(uint32_t); break;
-    case AHTSE_Int32: FILL(int32_t); break;
-    case AHTSE_Float32: FILL(float); break;
+    case ICDT_Byte: FILL(uint8_t); break;
+    case ICDT_UInt16: FILL(uint16_t); break;
+    case ICDT_Int16: FILL(int16_t); break;
+    case ICDT_UInt32: FILL(uint32_t); break;
+    case ICDT_Int32: FILL(int32_t); break;
+    case ICDT_Float32: FILL(float); break;
     default:
         return "Unsupported data type for LERC1 encode"; // Error return
     }
@@ -67,10 +71,11 @@ const char* lerc_encode(lerc_params& params, storage_manager& src, storage_manag
     if (!zImg.write(&pdst, params.prec))
         return "Error during LERC1 compression";
     // Write advances the pdst pointer
-    if (pdst - buffer > dst.size)
-        // This is a late check, better than never?
+    auto pd = static_cast<size_t>(pdst - buffer);
+    // This is too late, better than never?
+    if (pd > dst.size)
         return "Output buffer overflow";
-    dst.size = static_cast<int>(pdst - buffer);
+    dst.size = pd;
     return nullptr;
 }
 
@@ -121,7 +126,7 @@ static int checkV1(const char* s, size_t sz) {
 
 template <typename T> static void Lerc1ImgUFill(Lerc1Image& zImg, 
     const codec_params &params, T* buffer) {
-    const T ndv = static_cast<T>(params.ndv);
+    const auto ndv = static_cast<T>(params.raster.ndv);
     for (int row = 0; row < zImg.getHeight(); row++) {
         auto ptr = reinterpret_cast<T*>(reinterpret_cast<char *>(buffer) 
             + static_cast<size_t>(row) * params.line_stride);
@@ -131,32 +136,33 @@ template <typename T> static void Lerc1ImgUFill(Lerc1Image& zImg,
 }
 
 const char* lerc_stride_decode(codec_params& params, storage_manager& src, void* buffer) {
-    if (params.size.c != 1)
+    auto const& rsize = params.raster.size;
+    if (rsize.c != 1)
         return "Lerc1 multi-band is not supported";
-    if (!checkV1(src.buffer, src.size))
+    if (!checkV1(reinterpret_cast<const char *>(src.buffer), src.size))
         return "Not a Lerc1 tile";
 
     // Set default line stride if it wasn't specified explicitly
     if (0 == params.line_stride)
-        params.line_stride = static_cast<apr_uint32_t>(params.size.x * getTypeSize(params.dt));
+        params.line_stride = getTypeSize(params.raster.dt, rsize.x);
     Lerc1Image zImg;
 
     size_t nRemainingBytes = src.size;
     auto ptr = reinterpret_cast<Lerc1NS::Byte*>(src.buffer);
     if (!zImg.read(&ptr, nRemainingBytes, 1e12))
         return "Error during LERC decompression";
-    if (zImg.getHeight() != params.size.y || zImg.getWidth() != params.size.x)
+    if (zImg.getHeight() != rsize.y || zImg.getWidth() != rsize.x)
         return "Image received has the wrong size";
 
     // Got the data and the mask in zImg
 #define UFILL(T) Lerc1ImgUFill(zImg, params, reinterpret_cast<T*>(buffer))
-    switch (params.dt) {
-    case AHTSE_Byte: UFILL(uint8_t); break;
-    case AHTSE_UInt16: UFILL(uint16_t); break;
-    case AHTSE_Int16: UFILL(int16_t); break;
-    case AHTSE_UInt32: UFILL(uint32_t); break;
-    case AHTSE_Int32: UFILL(int32_t); break;
-    case AHTSE_Float: UFILL(float); break;
+    switch (params.raster.dt) {
+    case ICDT_Byte: UFILL(uint8_t); break;
+    case ICDT_UInt16: UFILL(uint16_t); break;
+    case ICDT_Int16: UFILL(int16_t); break;
+    case ICDT_UInt32: UFILL(uint32_t); break;
+    case ICDT_Int32: UFILL(int32_t); break;
+    case ICDT_Float: UFILL(float); break;
     default: break;
     }
 #undef UFILL
@@ -164,11 +170,11 @@ const char* lerc_stride_decode(codec_params& params, storage_manager& src, void*
     return nullptr; // Success
 }
 
-int set_lerc_params(const TiledRaster& raster, lerc_params* params) {
+int set_lerc_params(const Raster& raster, lerc_params* params) {
     memset(params, 0, sizeof(lerc_params));
-    params->size = raster.pagesize;
-    params->dt = raster.datatype;
-    params->prec = static_cast<float>(raster.precision);
+    params->raster = raster;
+    params->prec = static_cast<float>(raster.res);
     return 0;
 }
-NS_AHTSE_END
+
+NS_END

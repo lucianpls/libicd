@@ -13,7 +13,7 @@ extern "C" {
 #include <jerror.h>
 }
 
-NS_AHTSE_START
+NS_ICD_START
 
 static void emitMessage(j_common_ptr cinfo, int msgLevel);
 static void errorExit(j_common_ptr cinfo);
@@ -143,7 +143,7 @@ const char *jpeg8_stride_decode(codec_params &params, storage_manager &src, void
         "Message buffer too small");
     params.error_message[0] = 0; // Clear errors
 
-    if (getTypeSize(params.dt) != AHTSE_Byte) {
+    if (getTypeSize(params.raster.dt) != ICDT_Byte) {
         sprintf(params.error_message, "JPEG8 decode called with wrong datatype");
         return params.error_message;
     }
@@ -182,7 +182,8 @@ const char *jpeg8_stride_decode(codec_params &params, storage_manager &src, void
     jpeg_read_header(&cinfo, TRUE);
     cinfo.dct_method = JDCT_FLOAT;
 
-    if (!(params.size.c == 1 || params.size.c == 3))
+    auto const& rsize = params.raster.size;
+    if (!(rsize.c == 1 || rsize.c == 3))
         sprintf(params.error_message, "JPEG with wrong number of components");
 
     if (jpeg_has_multiple_scans(&cinfo) || cinfo.arith_code)
@@ -191,17 +192,17 @@ const char *jpeg8_stride_decode(codec_params &params, storage_manager &src, void
     if (cinfo.data_precision != 8)
         sprintf(params.error_message, "JPEG with more than 8 bits of data");
 
-    if (cinfo.image_width != params.size.x || cinfo.image_height != params.size.y)
+    if (cinfo.image_width != rsize.x || cinfo.image_height != rsize.y)
         sprintf(params.error_message, "Wrong JPEG size on input");
 
-    apr_int64_t line_stride = params.line_stride;
+    auto line_stride = params.line_stride;
     if (0 == line_stride)
-        line_stride = params.size.c * params.size.x;
+        line_stride = rsize.c * rsize.x;
 
     // Only if the error message hasn't been set already
     if (params.error_message[0] == 0) {
         // Force output to desired number of channels
-        cinfo.out_color_space = (params.size.c == 3) ? JCS_RGB : JCS_GRAYSCALE;
+        cinfo.out_color_space = (rsize.c == 3) ? JCS_RGB : JCS_GRAYSCALE;
         jpeg_start_decompress(&cinfo);
         while (cinfo.output_scanline < cinfo.image_height) {
             // Do the math in bytes, because line_stride is in bytes
@@ -224,9 +225,7 @@ const char *jpeg8_stride_decode(codec_params &params, storage_manager &src, void
     // If a Zen chunk was encountered, apply it
     if (nullptr != jh.zenChunk.buffer) {
         // Mask defaults to full
-        BitMap2D<> bm(
-            static_cast<unsigned int>(params.size.x),
-            static_cast<unsigned int>(params.size.y));
+        BitMap2D<> bm(static_cast<unsigned int>(rsize.x), static_cast<unsigned int>(rsize.y));
 
         // A zero size zen chunk means all pixels are not black, matching the full mask
         if (jh.zenChunk.size != 0) { // Read the mask from the chunk only for partial masks
@@ -240,8 +239,8 @@ const char *jpeg8_stride_decode(codec_params &params, storage_manager &src, void
 
         params.modified = apply_mask(&bm,
             reinterpret_cast<JSAMPROW>(buffer),
-            static_cast<int>(params.size.c),
-            static_cast<int>(params.line_stride));
+            static_cast<int>(rsize.c),
+            static_cast<int>(line_stride));
     }
 
     return nullptr; // nullptr on success
@@ -254,7 +253,7 @@ const char *jpeg8_encode(jpeg_params &params, storage_manager &src, storage_mana
     jpeg_error_mgr err;
     JPGHandle jh;
     jpeg_destination_mgr mgr;
-    int linesize;
+    size_t linesize;
     JSAMPLE *rp[2];
 
     memset(&jh, 0, sizeof(jh));
@@ -268,6 +267,7 @@ const char *jpeg8_encode(jpeg_params &params, storage_manager &src, storage_mana
     cinfo.err = jpeg_std_error(&err);
     err.error_exit = errorExit;
     err.emit_message = emitMessage;
+    auto const& rsize = params.raster.size;
 
     jh.message = params.error_message;
     cinfo.client_data = &jh;
@@ -280,10 +280,10 @@ const char *jpeg8_encode(jpeg_params &params, storage_manager &src, storage_mana
 
     jpeg_create_compress(&cinfo);
     cinfo.dest = &mgr;
-    cinfo.image_width = static_cast<JDIMENSION>(params.size.x);
-    cinfo.image_height = static_cast<JDIMENSION>(params.size.y);
-    cinfo.input_components = static_cast<int>(params.size.c);
-    cinfo.in_color_space = (params.size.c == 3) ? JCS_RGB : JCS_GRAYSCALE;
+    cinfo.image_width = static_cast<JDIMENSION>(rsize.x);
+    cinfo.image_height = static_cast<JDIMENSION>(rsize.y);
+    cinfo.input_components = static_cast<int>(rsize.c);
+    cinfo.in_color_space = (rsize.c == 3) ? JCS_RGB : JCS_GRAYSCALE;
 
     jpeg_set_defaults(&cinfo);
 
@@ -306,4 +306,4 @@ const char *jpeg8_encode(jpeg_params &params, storage_manager &src, storage_mana
         params.error_message : nullptr;
 }
 
-NS_AHTSE_END
+NS_END // ICD

@@ -1,5 +1,5 @@
 /*
-* ahtse_codecs.h
+* icd_codecs.h
 *
 * Raster codecs only
 * No include dependencies on apr or http
@@ -10,79 +10,154 @@
 
 #pragma once
 
-#if !defined(AHTSE_CODECS_H)
-#define AHTSE_CODECS_H
+#if !defined(ICD_CODECS_H)
+#define ICD_CODECS_H
 
-#include <ahtse_common.h>
-
-#if !defined(NS_AHTSE_START)
-#define NS_AHTSE_START namespace AHTSE {
-#define NS_AHTSE_END }
-#define NS_AHTSE_USE using namespace AHTSE;
+#if !defined(NS_ICD_START)
+#define NS_ICD_START namespace ICD {
+#define NS_END }
+#define NS_ICD_USE using namespace ICD;
 #endif
 
-NS_AHTSE_START
+#include <cstdint>
+
+//
+// Define DLL_PUBLIC to make a symbol visible
+// Define DLL_LOCAL to hide a symbol
+// Default behavior is system depenent
+//
+
+#if defined _WIN32 || defined __CYGWIN__
+#define DLL_LOCAL
+
+#ifdef LIBICD_EXPORTS
+#ifdef __GNUC__
+#define DLL_PUBLIC __attribute__ ((dllexport))
+#else
+#define DLL_PUBLIC __declspec(dllexport)
+#endif
+#else
+#ifdef __GNUC__
+#define DLL_PUBLIC __attribute__ ((dllimport))
+#else
+#define DLL_PUBLIC __declspec(dllimport)
+#endif
+#endif
+
+#else
+
+#if __GNUC__ >= 4
+#define DLL_PUBLIC __attribute__ ((visibility ("default")))
+#define DLL_LOCAL  __attribute__ ((visibility ("hidden")))
+#else
+#define DLL_PUBLIC
+#define DLL_LOCAL
+#endif
+
+#endif
+
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#define IS_BIGENDIAN
+#else
+#endif
+
+#if IS_BIGENDIAN // Big endian, do nothing
+
+// These values are big endian
+#define PNG_SIG 0x89504e47
+#define JPEG_SIG 0xffd8ffe0
+
+// Lerc is only supported on little endian
+#define LERC_SIG 0x436e745a
+
+// This one is not an image type, but an encoding
+#define GZIP_SIG 0x1f8b0800
+
+#else // Little endian
+
+// For formats that need net order, equivalent to !IS_BIGENDIAN
+#define NEED_SWAP
+
+#if defined(_WIN32)
+// Windows is always little endian, supply functions to swap bytes
+ // These are defined in <cstdlib>
+#define htobe16 _byteswap_ushort
+#define be16toh _byteswap_ushort
+#define htobe32 _byteswap_ulong
+#define be32toh _byteswap_ulong
+#define htobe64 _byteswap_uint64
+#define be64toh _byteswap_uint64
+
+#define le64toh(X) (X)
+#define htole64(X) (X)
+
+#else
+// Assume linux
+#include <endian.h>
+
+#endif
+
+#define PNG_SIG  0x474e5089
+#define JPEG_SIG 0xe0ffd8ff
+#define LERC_SIG 0x5a746e43
+
+// This one is not an image type, but an encoding
+#define GZIP_SIG 0x00088b1f
+
+#endif
+
+NS_ICD_START
 
 // Pixel value data types
 // Copied and slightly modified from GDAL
 typedef enum {
-    AHTSE_Unknown = 0,    // Unknown or unspecified type
-    AHTSE_Byte = 1,       // Eight bit unsigned integer
-    AHTSE_Char = 1,
-    AHTSE_UInt16 = 2,     // Sixteen bit unsigned integer
-    AHTSE_Int16 = 3,      // Sixteen bit signed integer
-    AHTSE_Short = 3,
-    AHTSE_UInt32 = 4,     // Thirty two bit unsigned integer
-    AHTSE_Int32 = 5,      // Thirty two bit signed integer
-    AHTSE_Int = 5,
+    ICDT_Unknown = 0,    // Unknown or unspecified type
+    ICDT_Byte = 1,       // Eight bit unsigned integer
+    ICDT_Char = 1,
+    ICDT_UInt16 = 2,     // Sixteen bit unsigned integer
+    ICDT_Int16 = 3,      // Sixteen bit signed integer
+    ICDT_Short = 3,
+    ICDT_UInt32 = 4,     // Thirty two bit unsigned integer
+    ICDT_Int32 = 5,      // Thirty two bit signed integer
+    ICDT_Int = 5,
     // Keep the floats at the end
-    AHTSE_Float32 = 6,    // Thirty two bit floating point
-    AHTSE_Float = 6,
-    AHTSE_Float64 = 7,    // Sixty four bit floating point
-    AHTSE_Double = 7
-    //    AHTSE_TypeCount = 8   // Not a type
-} AHTSEDataType;
+    ICDT_Float32 = 6,    // Thirty two bit floating point
+    ICDT_Float = 6,
+    ICDT_Float64 = 7,    // Sixty four bit floating point
+    ICDT_Double = 7
+    //    ICDT_TypeCount = 8   // Not a type
+} ICDDataType;
 
 // IMG_ANY is the default, but no checks can be done at config time
 // On input, it decodes to byte, on output it is equivalent to IMG_JPEG
 // JPEG is always JPEG_ZEN
 enum IMG_T { IMG_ANY, IMG_JPEG, IMG_PNG, IMG_LERC, IMG_INVALID };
 
-DLL_PUBLIC IMG_T getFMT(const std::string&);
+DLL_PUBLIC IMG_T getFMT(const char *name);
 
 // Size in bytes
-DLL_PUBLIC int getTypeSize(AHTSEDataType dt, int num = 1);
+DLL_PUBLIC size_t getTypeSize(ICDDataType dt, size_t num = 1);
 
 // Return a data type by name
-DLL_PUBLIC AHTSEDataType getDT(const char* name);
+DLL_PUBLIC ICDDataType getDT(const char* name);
 
-// Tile raster properties
-struct TiledRaster {
-    // Size and pagesize of the raster
-    struct sz size, pagesize;
+struct sz {
+    size_t x, y, z, c, l;
+    const bool operator==(const struct sz& other) {
+        return (x == other.x) & (y == other.y) & (z == other.z) & (c == other.c) & (l == other.l);
+    }
+    const bool operator!=(const struct sz& other) {
+        return !operator==(other);
+    }
+};
 
-    // Generic data values
-    double ndv, min, max, precision;
-    int has_ndv, has_min, has_max;
+struct Raster {
+    struct sz size;
+    double ndv, min, max, res;
+    bool has_ndv, has_min, has_max;
+    ICDDataType dt;
     int maxtilesize;
     IMG_T format;
-
-    // how many levels from full size, computed
-    int n_levels;
-    // width and height for each pyramid level
-    rset* rsets;
-    // How many levels to skip at the top of the pyramid
-    int skip;
-    AHTSEDataType datatype;
-
-    // geographical projection
-    const char* projection;
-    struct bbox_t bbox;
-
-    // ETag initializer
-    uint64_t seed;
-    // The Empty tile etag in string form, derived from seed
-    empty_conf_t missing;
 };
 
 //
@@ -91,31 +166,29 @@ struct TiledRaster {
 // For encoders, see format specific extensions below
 //
 struct codec_params {
-    codec_params() {
-        memset(this, 0, sizeof(codec_params));
-    }
-    codec_params(const TiledRaster& raster) {
-        memset(this, 0, sizeof(codec_params));
-        size = raster.pagesize;
-        dt = raster.datatype;
-        if (raster.has_ndv)
-            ndv = raster.ndv;
-    }
+    codec_params(const Raster& r) :
+        raster(r), 
+        line_stride(getTypeSize(raster.dt, raster.size.x * raster.size.c)), 
+        modified(false)
+    {
+        for (auto &t : error_message)
+            t = 0;
+    };
+
     DLL_PUBLIC size_t min_buffer_size() const {
-        return size.x * size.y * getTypeSize(dt);
+        return getTypeSize(raster.dt, raster.size.x * raster.size.y);
     }
-    sz size;
-    AHTSEDataType dt; // data type
-    IMG_T format;    // output from decode
+
+    Raster raster;
     // Line size in bytes for decoding only
-    uint32_t line_stride;
-    // Set if special data handling took place during decoding (zero mask on JPEG)
-    uint32_t modified;
-    double ndv; // Defaults to zero, needed during decode for Lerc1
-    // A place for codec error message
+    size_t line_stride;
+    // A buffer for codec error message
     char error_message[1024];
+    // Set if special data handling took place during decoding (zero mask on JPEG)
+    bool modified;
 };
 
+// Specialized by format, for encode
 struct jpeg_params : codec_params {
     int quality;
 };
@@ -135,6 +208,14 @@ struct lerc_params : codec_params {
     float prec; // half of quantization step
 };
 
+struct storage_manager {
+    storage_manager(void) : buffer(nullptr), size(0) {}
+    storage_manager(void* ptr, size_t sz) :
+        buffer(ptr), size(sz) {};
+    void* buffer;
+    size_t size; // In bytes
+};
+
 // Generic image decode dispatcher, parameters should be already set to what is expected
 // Returns error message or null.
 DLL_PUBLIC const char* stride_decode(codec_params& params, storage_manager& src, void* buffer);
@@ -148,7 +229,7 @@ DLL_PUBLIC const char* stride_decode(codec_params& params, storage_manager& src,
 DLL_PUBLIC const char* jpeg_stride_decode(codec_params& params, storage_manager& src, void* buffer);
 DLL_PUBLIC const char* jpeg_encode(jpeg_params& params, storage_manager& src, storage_manager& dst);
 // Based on the raster configuration, populates a jpeg parameter structure, must call before encode and decode
-DLL_PUBLIC int set_jpeg_params(const TiledRaster& raster, codec_params* params);
+DLL_PUBLIC int set_jpeg_params(const Raster& raster, codec_params* params);
 
 // In PNG_codec.cpp
 // raster defines the expected tile
@@ -159,13 +240,13 @@ DLL_PUBLIC int set_jpeg_params(const TiledRaster& raster, codec_params* params);
 DLL_PUBLIC const char* png_stride_decode(codec_params& params, storage_manager& src, void* buffer);
 DLL_PUBLIC const char* png_encode(png_params& params, storage_manager& src, storage_manager& dst);
 // Based on the raster configuration, populates a png parameter structure, must call before encode and decode
-DLL_PUBLIC int set_png_params(const TiledRaster& raster, png_params* params);
+DLL_PUBLIC int set_png_params(const Raster& raster, png_params* params);
 
 // In LERC_codec.cpp
 DLL_PUBLIC const char* lerc_stride_decode(codec_params& params, storage_manager& src, void* buffer);
 DLL_PUBLIC const char* lerc_encode(lerc_params& params, storage_manager& src, storage_manager& dst);
 // Based on the raster configuration, populates a png parameter structure
-DLL_PUBLIC int set_lerc_params(const TiledRaster& raster, lerc_params* params);
+DLL_PUBLIC int set_lerc_params(const Raster& raster, lerc_params* params);
 
-NS_AHTSE_END
+NS_END
 #endif

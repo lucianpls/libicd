@@ -27,7 +27,7 @@
 #include <algorithm>
 #include "BitMask2D.h"
 
-NS_AHTSE_USE
+NS_ICD_USE
 
 //
 // RLE yarn codec, uses a dedicated code as marker, default value is 0xC3
@@ -179,9 +179,10 @@ static Byte getLeastUsed(const Byte *src, size_t len) {
 DLL_LOCAL int RLEC3Packer::load(storage_manager *src, storage_manager *dst)
 {
     // Use the first char in the input buffer as marker code
-    return dst->size == static_cast<int>(
-        fromYarn(src->buffer + 1, src->size - 1,
-            dst->buffer, dst->size, *src->buffer));
+    auto s = reinterpret_cast<char*>(src->buffer);
+    auto d = reinterpret_cast<char*>(dst->buffer);
+    auto c = static_cast<Byte>(*s++);
+    return dst->size == static_cast<int>(fromYarn(s, src->size - 1, d, dst->size, c));
 }
 
 //
@@ -193,10 +194,12 @@ DLL_LOCAL int RLEC3Packer::load(storage_manager *src, storage_manager *dst)
 
 DLL_LOCAL int RLEC3Packer::store(storage_manager *src, storage_manager *dst)
 {
+    auto s = reinterpret_cast<Byte*>(src->buffer);
+    auto d = reinterpret_cast<char*>(dst->buffer);
     if (dst->size < 1 + src->size + src->size / 256)
         return 0; // Failed, destination might overflow
-    Byte c = getLeastUsed(reinterpret_cast<const Byte *>(src->buffer), src->size);
-    *dst->buffer++ = static_cast<char>(c);
-    dst->size = 1 + static_cast<int>(toYarn(src->buffer, dst->buffer, src->size, c));
+    Byte c = getLeastUsed(s, src->size);
+    *d++ = static_cast<char>(c);
+    dst->size = 1 + toYarn(reinterpret_cast<const char *>(s), d, src->size, c);
     return 1; // Success, size is in dst->size
 }
