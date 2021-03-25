@@ -212,6 +212,7 @@ nmake -f makefile.vc DEBUG=1 install</NMakeReBuildCommandLine>
     <None Include="src\jpeg12-6b\Makefile" />
     <None Include="src\lerc1\Makefile" />
     <None Include="src\Makefile" />
+    <None Include="src\Makefile.lcl.example" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

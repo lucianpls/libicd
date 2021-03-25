@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include <string>
 #include <cctype>
+#include <cstring>
 
 NS_ICD_START
 
