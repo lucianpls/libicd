@@ -151,7 +151,8 @@ const char* lerc_stride_decode(codec_params& params, storage_manager& src, void*
     auto ptr = reinterpret_cast<Lerc1NS::Byte*>(src.buffer);
     if (!zImg.read(&ptr, nRemainingBytes, 1e12))
         return "Error during LERC decompression";
-    if (zImg.getHeight() != rsize.y || zImg.getWidth() != rsize.x)
+    if (static_cast<size_t>(zImg.getHeight()) != rsize.y 
+        || static_cast<size_t>(zImg.getWidth()) != rsize.x)
         return "Image received has the wrong size";
 
     // Got the data and the mask in zImg

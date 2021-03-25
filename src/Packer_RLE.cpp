@@ -182,7 +182,7 @@ DLL_LOCAL int RLEC3Packer::load(storage_manager *src, storage_manager *dst)
     auto s = reinterpret_cast<char*>(src->buffer);
     auto d = reinterpret_cast<char*>(dst->buffer);
     auto c = static_cast<Byte>(*s++);
-    return dst->size == static_cast<int>(fromYarn(s, src->size - 1, d, dst->size, c));
+    return dst->size == fromYarn(s, src->size - 1, d, dst->size, c);
 }
 
 //
