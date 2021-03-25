@@ -31,11 +31,17 @@ Obviously not thread safe while any bit gets modified
 #define BITMASK2D_H
 #include <vector>
 #include <stdexcept>
+#include <cstring>
 
 // Defines the storage_manager
 #include "icd_codecs.h"
 
+#if defined(IS_BIGENDIAN)
+#error Not implemented for big endian
+#endif
+
 NS_ICD_START
+
 // A base class that provides import and export functions based on storage managers
 // Default implementation is a straight copy
 class Packer {
@@ -193,20 +199,7 @@ private:
     }
 
 // Swap bytes of storage units within the bitmap to low endian
-#if APR_IS_BIGENDIAN
-    void swab() {
-        if (sizeof(T) == 64) {
-            for (size_t i = 0; i < _bits.size(); i++)
-                __builtin_bswap64(reinterpret_cast<GUIntBig *>(&_bits[i]))
-        }
-        else {
-            for (size_t i = 0; i < _bits.size(); i++)
-                __builtin_bswap16(reinterpret_cast<GUInt16 *>(&_bits[i]));
-        }
-    }
-#else
     static void swab() {}
-#endif
 
     // Class that provides export and import capabilities, not owned
     Packer *_packer;

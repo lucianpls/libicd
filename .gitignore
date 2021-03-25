@@ -31,7 +31,8 @@
 *.out
 *.app
 
-# Local files
+# Local and temporary files
+*~
 Makefile.lcl
 
 # VS stuff

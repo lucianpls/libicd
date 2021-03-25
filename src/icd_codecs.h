@@ -20,6 +20,7 @@
 #endif
 
 #include <cstdint>
+#include <cstddef>
 
 //
 // Define DLL_PUBLIC to make a symbol visible
