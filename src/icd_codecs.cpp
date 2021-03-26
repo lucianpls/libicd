@@ -1,5 +1,4 @@
 #include "icd_codecs.h"
-#include <unordered_map>
 #include <string>
 #include <cctype>
 #include <cstring>
@@ -33,17 +32,20 @@ ICDDataType getDT(const char* name)
 }
 
 size_t getTypeSize(ICDDataType dt, size_t n) {
-    static const std::unordered_map<ICDDataType, int> sizes = {
-        {ICDT_Unknown, ~0},
-        {ICDT_Byte, 1},
-        {ICDT_UInt16, 2},
-        {ICDT_Int16, 2},
-        {ICDT_UInt32, 4},
-        {ICDT_Int32, 4},
-        {ICDT_Float32, 4},
-        {ICDT_Double, 8}
-    };
-    return n * ((sizes.find(dt) == sizes.end()) ? ~0 : sizes.at(dt));
+    switch (dt) {
+    case ICDT_Byte:
+        return n;
+    case ICDT_UInt16:
+    case ICDT_Short:
+        return 2 * n;
+    case ICDT_UInt32:
+    case ICDT_Int:
+    case ICDT_Float:
+        return 4 * n;
+    case ICDT_Double:
+        return 8 * n;
+    }
+    return ~0;
 }
 
 IMG_T getFMT(const char *name) {
