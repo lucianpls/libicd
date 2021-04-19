@@ -50,7 +50,7 @@
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -65,9 +65,11 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PrefixMacro.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PrefixMacro.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -130,9 +132,11 @@ nmake -f makefile.vc DEBUG=1 install</NMakeReBuildCommandLine>
       <IgnoreSpecificDefaultLibraries>libcmt;msvcrt</IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y $(TargetPath) \Apache24\bin
-copy /y $(TargetDir)$(TargetName).pdb \Apache24\bin
-copy /y $(TargetDir)$(TargetName).lib \Apache24\lib</Command>
+      <Command>copy /y $(TargetPath) $(Prefix)bin
+copy /y $(TargetDir)$(TargetName).pdb $(Prefix)bin
+copy /y $(TargetDir)$(TargetName).lib $(Prefix)lib
+copy /y $(ProjectDir)src\icd_codecs.h $(Prefix)include</Command>
+      <Message>Deploy to $(Prefix)</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
