@@ -129,6 +129,11 @@ nmake -f makefile.vc DEBUG=1 install</NMakeReBuildCommandLine>
       <AdditionalDependencies>jpeg.lib;libpng.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libcmt;msvcrt</IgnoreSpecificDefaultLibraries>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /y $(TargetPath) \Apache24\bin
+copy /y $(TargetDir)$(TargetName).pdb \Apache24\bin
+copy /y $(TargetDir)$(TargetName).lib \Apache24\lib</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
