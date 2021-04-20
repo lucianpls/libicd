@@ -289,7 +289,7 @@ const char *jpeg8_encode(jpeg_params &params, storage_manager &src, storage_mana
 
     jpeg_set_quality(&cinfo, params.quality, TRUE);
     cinfo.dct_method = JDCT_FLOAT;
-    linesize = cinfo.image_width * cinfo.num_components;
+    linesize = static_cast<size_t>(cinfo.image_width) * cinfo.num_components;
 
     jpeg_start_compress(&cinfo, TRUE);
     const JSAMPROW rowbuffer = reinterpret_cast<JSAMPROW>(src.buffer);

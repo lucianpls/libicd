@@ -59,6 +59,7 @@ IMG_T getFMT(const char *name) {
     return IMG_INVALID;
 }
 
+
 const char* stride_decode(codec_params& params, storage_manager& src, void* buffer)
 {
     const char* error_message = nullptr;
@@ -83,6 +84,27 @@ const char* stride_decode(codec_params& params, storage_manager& src, void* buff
         error_message = "Decode requested for unknown format";
     }
     return error_message;
+}
+
+
+const char* image_peek(const storage_manager& src, Raster& raster) {
+    uint32_t sig = 0;
+    if (src.size < sizeof(sig))
+        return "Input buffer too small";
+    memcpy(&sig, src.buffer, sizeof(sig));
+    switch (sig) {
+    case JPEG_SIG:
+        return jpeg_peek(src, raster);
+    case PNG_SIG:
+        return png_peek(src, raster);
+    case LERC_SIG:
+        return lerc_peek(src, raster);
+    }
+    return "Unknown format";
+}
+
+const char* Raster::init(const storage_manager& src) {
+    return image_peek(src, *this);
 }
 
 NS_END

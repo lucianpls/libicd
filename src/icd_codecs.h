@@ -152,6 +152,14 @@ struct sz {
     }
 };
 
+struct storage_manager {
+    storage_manager(void) : buffer(nullptr), size(0) {}
+    storage_manager(void* ptr, size_t sz) :
+        buffer(ptr), size(sz) {};
+    void* buffer;
+    size_t size; // In bytes
+};
+
 struct Raster {
     struct sz size;
     double ndv, min, max, res;
@@ -159,6 +167,8 @@ struct Raster {
     ICDDataType dt;
     int maxtilesize;
     IMG_T format;
+    // Populates size from a compressed source
+    const char* init(const storage_manager& src);
 };
 
 //
@@ -209,16 +219,9 @@ struct lerc_params : codec_params {
     float prec; // half of quantization step
 };
 
-struct storage_manager {
-    storage_manager(void) : buffer(nullptr), size(0) {}
-    storage_manager(void* ptr, size_t sz) :
-        buffer(ptr), size(sz) {};
-    void* buffer;
-    size_t size; // In bytes
-};
-
 // Generic image decode dispatcher, parameters should be already set to what is expected
 // Returns error message or null.
+DLL_PUBLIC const char* image_peek(const storage_manager& src, Raster& raster);
 DLL_PUBLIC const char* stride_decode(codec_params& params, storage_manager& src, void* buffer);
 
 // In JPEG_codec.cpp
@@ -227,6 +230,7 @@ DLL_PUBLIC const char* stride_decode(codec_params& params, storage_manager& src,
 // buffer is the location of the first byte on the first line of decoded data
 // line_stride is the size of a line in buffer (larger or equal to decoded JPEG line)
 // Returns NULL if everything looks fine, or an error message
+DLL_PUBLIC const char* jpeg_peek(const storage_manager& src, Raster& raster);
 DLL_PUBLIC const char* jpeg_stride_decode(codec_params& params, storage_manager& src, void* buffer);
 DLL_PUBLIC const char* jpeg_encode(jpeg_params& params, storage_manager& src, storage_manager& dst);
 // Based on the raster configuration, populates a jpeg parameter structure, must call before encode and decode
@@ -238,12 +242,14 @@ DLL_PUBLIC int set_jpeg_params(const Raster& raster, codec_params* params);
 // buffer is the location of the first byte on the first line of decoded data
 // line_stride is the size of a line in buffer (larger or equal to decoded PNG line)
 // Returns NULL if everything looks fine, or an error message
+DLL_PUBLIC const char* png_peek(const storage_manager& src, Raster& raster);
 DLL_PUBLIC const char* png_stride_decode(codec_params& params, storage_manager& src, void* buffer);
 DLL_PUBLIC const char* png_encode(png_params& params, storage_manager& src, storage_manager& dst);
 // Based on the raster configuration, populates a png parameter structure, must call before encode and decode
 DLL_PUBLIC int set_png_params(const Raster& raster, png_params* params);
 
 // In LERC_codec.cpp
+DLL_PUBLIC const char* lerc_peek(const storage_manager& src, Raster& raster);
 DLL_PUBLIC const char* lerc_stride_decode(codec_params& params, storage_manager& src, void* buffer);
 DLL_PUBLIC const char* lerc_encode(lerc_params& params, storage_manager& src, storage_manager& dst);
 // Based on the raster configuration, populates a png parameter structure
