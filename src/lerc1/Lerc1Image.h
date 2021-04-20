@@ -22,6 +22,12 @@ Contributors:  Thomas Maurer
 #include <cstring>
 #include <vector>
 
+static_assert(sizeof(float) == 4, "lerc requires float to be exactly 4 bytes");
+static_assert(sizeof(double) == 8, "lerc requires double to be exactly 8 bytes");
+static_assert(sizeof(int) == 4, "lerc requires int to be exactly 4 bytes");
+
+// TODO: Need a portable endianess detection, only works in little endian
+
 #ifndef NAMESPACE_LERC1_START
 #define NAMESPACE_LERC1_START namespace Lerc1NS {
 #define NAMESPACE_LERC1_END }
@@ -29,8 +35,6 @@ Contributors:  Thomas Maurer
 #endif
 
 NAMESPACE_LERC1_START
-static_assert(sizeof(float) == 4, "lerc requires float to be exactly 4 bytes");
-
 typedef unsigned char Byte;
 
 /** BitMaskV1 - Convenient and fast access to binary mask bits

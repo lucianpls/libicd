@@ -284,13 +284,10 @@ static const std::string sCntZImage("CntZImage "); // Includes a space
 // computes the size of a CntZImage of any width and height, but all void / invalid,
 // and then compressed
 unsigned int Lerc1Image::computeNumBytesNeededToWriteVoidImage() {
-    unsigned int sz = (unsigned int)sCntZImage.size()
-        + 4 * sizeof(int) + sizeof(double);
-    // cnt part
-    sz += 3 * sizeof(int) + sizeof(float);
-    // z part, 1 is the empty Tile if all invalid
-    sz += 3 * sizeof(int) + sizeof(float) + 1;
-    return sz; // 67
+    return static_cast<unsigned int>(sCntZImage.size() // signature
+        + 4 * sizeof(int) + sizeof(double) // header
+        + 3 * sizeof(int) + sizeof(float)  // mask array header
+        + 3 * sizeof(int) + sizeof(float) + 1); // data array header + void block
 }
 
 struct InfoFromComputeNumBytes {
@@ -545,9 +542,8 @@ bool Lerc1Image::findTiling(double maxZError,
     numTilesVertA = numTilesHoriA = 1;
     if (!writeTiles(maxZError, 1, 1, nullptr, numBytesOptA, maxValInImgA))
         return false;
-    // The actual figure may be different due to round-down
-    static const std::vector<int> tileWidthArr = { 8, 11, 15, 20, 32, 64 };
-    for (auto tileWidth : tileWidthArr) {
+    // The actual figure used may be different due to integer division
+    for (auto tileWidth : { 6, 8, 11, 15, 20, 32, 64 }) {
         int numTilesVert = static_cast<int>(getHeight() / tileWidth);
         int numTilesHori = static_cast<int>(getWidth() / tileWidth);
 
@@ -602,7 +598,7 @@ static int numBytesZTile(int nValues, float zMin, float zMax, double maxZError) 
     return nb + 1 + numBytesUInt(nValues) + (nValues * nBits(maxElem) + 7) / 8;
 }
 
-// Pass bArr == nullptr to estimate the size but skip the write
+// Pass bArr == nullptr to skip the write, only calculate size
 bool Lerc1Image::writeTiles(double maxZError, int numTilesV, int numTilesH,
     Byte* bArr, int& numBytes, float& maxValInImg) const
 {
