@@ -20,16 +20,11 @@ USING_NAMESPACE_LERC1
 NS_ICD_START
 
 
-// Read an unaligned 4 byte little endian int from location p, advances pointer
-static void READ_INT32(uint32_t& X, const char*& p) {
-    memcpy(&X, p, sizeof(uint32_t));
-    p += sizeof(uint32_t);
-}
-
-// Read an unaligned 4 byte little endian float from location p, advances pointer
-static void READ_FLOAT(float& X, const char*& p) {
-    memcpy(&X, p, sizeof(float));
-    p += sizeof(float);
+// Reads and unaligned value, increments the pointer
+template <typename T>
+void READP(T& X, const char*& p) {
+    memcpy(&X, p, sizeof(X));
+    p += sizeof(X);
 }
 
 // Arbitrary epsilon
@@ -79,49 +74,73 @@ const char* lerc_encode(lerc_params& params, storage_manager& src, storage_manag
     return nullptr;
 }
 
-// Check that this tile content looks like a LERC1 format array
-static int checkV1(const char* s, size_t sz) {
-    if (sz < 67) // Minimal LERC1, all no data compressed size
-        return false;
+static const char ERR_LERC[] = "Corrupt or invalid LERC1";
+static const char ERR_SMALL[] = "Input buffer too small";
+
+const char* lerc_peek(const storage_manager& src, Raster& raster)
+{
+    auto minlerc = Lerc1Image::computeNumBytesNeededToWriteVoidImage();
+    if (src.size < minlerc)
+        return ERR_SMALL;
+
+    const char* s = reinterpret_cast<char *>(src.buffer);
     std::string l1sig(s, s + 10);
     if (l1sig != "CntZImage ")
-        return false;
+        return ERR_LERC;
     s += 10;
     uint32_t version, tpe;
-    READ_INT32(version, s); READ_INT32(tpe, s);
+    READP(version, s); READP(tpe, s);
     if (version != 11 || tpe != 8)
-        return false;
+        return ERR_LERC;
+
+    // Next is the size of the raster itself
     uint32_t h, w;
-    READ_INT32(h, s); READ_INT32(w, s);
-    if (w > 20000 || h > 20000) return false;
-    // skip the maxVal double
-    s += sizeof(double);
+    READP(h, s); READP(w, s);
+    if (w > 20000 || h > 20000)
+        return ERR_LERC;
+    raster.size.x = w;
+    raster.size.y = h;
+
+    // Read the LERC_PREC double
+    READP(raster.res, s);
 
     // First array header is the mask, 0 blocks
-    READ_INT32(h, s); READ_INT32(w, s);
-    if (h > 0 || w > 0) return false;
+    READP(h, s); READP(w, s);
+    if (h > 0 || w > 0)
+        return ERR_LERC;
 
     uint32_t msz; // Mask size, in bytes
-    READ_INT32(msz, s);
+    READP(msz, s);
     // mask max value shold be 1, or maybe 0 (empty)
     float mmval;
-    READ_FLOAT(mmval, s);
-    if (mmval != 0.0f && mmval != 1.0f) return false;
+    READP(mmval, s);
+    if (mmval != 0.0f && mmval != 1.0f)
+        return ERR_LERC;
 
-    // mask bytes, plus header up to this point, plus data header
-    if (msz + 50 + 16 > sz)
-        return false;
+    if (static_cast<size_t>(minlerc) + msz > src.size)
+        return ERR_SMALL;
     s += msz;
 
-    // Second array, data
-    // Data block count, never single pixels
-    READ_INT32(h, s);
-    READ_INT32(w, s);
-    if (h > 10000 || w > 10000) return false;
+    // Second array is data
+    // Data block count, never single pixels, at most size / 2
+    READP(h, s);
+    READP(w, s);
+    if (h > raster.size.y / 2 || w > raster.size.x / 2)
+        return ERR_LERC;
     uint32_t dsz; // data size, in bytes
-    READ_INT32(dsz, s);
+    READP(dsz, s);
+    float maxval;
+    READP(maxval, s);
+    raster.max = maxval;
+    raster.has_max = true;
+
     // Good enough
-    return (static_cast<size_t>(50 )+ 16 + msz + dsz <= sz);
+    if (static_cast<size_t>(minlerc - 1) + msz + dsz > src.size)
+        return ERR_SMALL;
+
+    raster.dt = ICDT_Unknown; // LERC1 can be read as anything
+    raster.format = IMG_LERC;
+    return nullptr;
 }
 
 template <typename T> static void Lerc1ImgUFill(Lerc1Image& zImg, 
@@ -139,8 +158,11 @@ const char* lerc_stride_decode(codec_params& params, storage_manager& src, void*
     auto const& rsize = params.raster.size;
     if (rsize.c != 1)
         return "Lerc1 multi-band is not supported";
-    if (!checkV1(reinterpret_cast<const char *>(src.buffer), src.size))
-        return "Not a Lerc1 tile";
+
+    Raster lerc_raster;
+    auto err_message = lerc_peek(src, lerc_raster);
+    if (err_message)
+        return err_message;
 
     // Set default line stride if it wasn't specified explicitly
     if (0 == params.line_stride)
