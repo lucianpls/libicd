@@ -10,6 +10,9 @@
 #include "icd_codecs.h"
 #include <vector>
 #include <png.h>
+#include <string>
+#include <cstring>
+
 
 NS_ICD_START
 
@@ -55,6 +58,124 @@ static void store_data(png_structp pngp, png_bytep data, png_size_t length)
     memcpy(dst->buffer, data, length);
     dst->buffer = reinterpret_cast<char*>(dst->buffer) + length;
     dst->size -= length;
+}
+
+static const char ERR_PNG[] = "Corrupt or invalid PNG";
+static const char ERR_SMALL[] = "Input buffer too small";
+static const char ERR_DIFFERENT[] = "Unknown type of PNG";
+
+static uint32_t readBE32(const unsigned char* src) {
+    uint32_t result = 0;
+    memcpy(&result, src, 4);
+    return be32toh(result);
+}
+
+const char* png_peek(const storage_manager& src, Raster& raster)
+{
+    const unsigned char* buffer = reinterpret_cast<unsigned char*>(src.buffer);
+    const unsigned char* sentinel = buffer + src.size;
+    if (src.size < 8)
+        return ERR_SMALL;
+    if (!png_check_sig(buffer, 8))
+        return ERR_PNG;
+    buffer += 8;
+
+    bool seen_IHDR = false;
+    bool seen_IDAT = false;
+    bool seen_IEND = false;
+
+    // A chunk is at least 12 bytes
+    while (!seen_IEND && buffer + 12 <= sentinel) {
+        auto size = readBE32(buffer);
+        buffer += 4;
+        std::string chunk(buffer, buffer + 4);
+        buffer += 4;
+        // deal with known types of chunk
+        if (chunk == "IHDR") { // Has to be first
+            if (seen_IHDR) // Only once
+                return ERR_PNG;
+            if (size != 13 || buffer + size + 4 > sentinel)
+                return ERR_PNG;
+            raster.size.x = readBE32(buffer);
+            raster.size.y = readBE32(buffer + 4);
+            // Bits per sample
+            auto bps = buffer[8]; // Valid values are 1, 2, 4, 8, 16, but we only handle 8 and 16
+            if (bps == 8)
+                raster.dt = ICDT_Byte;
+            else if (bps == 16)
+                raster.dt = ICDT_UInt16;
+            else
+                return ERR_DIFFERENT;
+
+            /*  buffer[9] is color type, mostly ignored
+            From https://www.w3.org/TR/PNG-Chunks.html
+
+                Color    Allowed        Interpretation
+                Type    Bit Depths
+            
+                0       1, 2, 4, 8, 16  Each pixel is a grayscale sample.
+            
+                2       8, 16           Each pixel is an R, G, B triple.
+
+                3       1, 2, 4, 8      Each pixel is a palette index;
+                                        a PLTE chunk must appear.
+
+                4       8, 16           Each pixel is a grayscale sample,
+                                        followed by an alpha sample.
+
+                6       8, 16           Each pixel is an R, G, B triple,
+                                        followed by an alpha sample.
+            */
+
+            // buffer[10] is compression method, only 0 is defined
+            if (buffer[10])
+                return ERR_DIFFERENT;
+
+            // buffer[11] is filter method. Only 0 supported
+            if (buffer[11])
+                return ERR_DIFFERENT;
+
+            // buffer[12] is interlace method, 0 and 1 supported
+            if (buffer[12] > 1)
+                return ERR_DIFFERENT;
+            seen_IHDR = true;
+        }
+        else if (!seen_IHDR) {
+            // Every other type is after IHDR
+            return ERR_PNG;
+        }
+        else if (chunk == "IDAT") {
+            // Data chunk
+            seen_IDAT = true;
+        }
+        else if (chunk == "IEND") {
+            // End of the PNG, should have no data
+            if (size || !seen_IDAT)
+                return ERR_PNG;
+            seen_IEND = true;
+        }
+
+        // Ignore all the other chunk types, assume they are fine
+
+        // Skip the chunk data, if any
+        if (size) {
+            if (size >> 31) // max chunk size is 2^31 - 1
+                return ERR_PNG;
+            buffer += size;
+            // Check that we still have enough space for the CRC
+            if (buffer + 4 > sentinel)
+                return ERR_PNG;
+        }
+
+        buffer += 4; // Skip the CRC, assume OK
+    }
+
+    if (!seen_IEND)
+        return ERR_SMALL;
+
+    // All OK
+    raster.format = IMG_PNG;
+    return nullptr;
 }
 
 const char *png_stride_decode(codec_params &params, storage_manager &src, void *buffer)
