@@ -69,6 +69,7 @@ const char* stride_decode(codec_params& params, storage_manager& src, void* buff
     switch (sig)
     {
     case JPEG_SIG:
+    case JPEG1_SIG:
         params.raster.format = IMG_JPEG;
         error_message = jpeg_stride_decode(params, src, buffer);
         break;
@@ -94,6 +95,7 @@ const char* image_peek(const storage_manager& src, Raster& raster) {
     memcpy(&sig, src.buffer, sizeof(sig));
     switch (sig) {
     case JPEG_SIG:
+    case JPEG1_SIG:
         return jpeg_peek(src, raster);
     case PNG_SIG:
         return png_peek(src, raster);

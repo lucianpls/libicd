@@ -67,6 +67,8 @@
 // These values are big endian
 #define PNG_SIG 0x89504e47
 #define JPEG_SIG 0xffd8ffe0
+// JPEG has two signatures
+#define JPEG1_SIG 0xffd8ffe1
 
 // Lerc is only supported on little endian
 #define LERC_SIG 0x436e745a
@@ -100,6 +102,7 @@
 
 #define PNG_SIG  0x474e5089
 #define JPEG_SIG 0xe0ffd8ff
+#define JPEG1_SIG 0xe1ffd8ff
 #define LERC_SIG 0x5a746e43
 
 // This one is not an image type, but an encoding

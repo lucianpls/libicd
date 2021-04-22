@@ -46,13 +46,13 @@ const char* jpeg_peek(const storage_manager& src, Raster& raster)
         switch (*buffer++) {
         case 0xc0: // SOF0, baseline which includes the size and precision
         case 0xc1: // SOF1, also baseline
-            // Chunk size, in big endian short, has to be at least 13
+            // Chunk size, in big endian short, has to be at least 11
             sz = 256 * buffer[0] + buffer[1];
             if (buffer + sz >= sentinel)
                 break; // Error in JPEG
 
-            // Size of SOF is at least 10 + 3 * bands;
-            if (sz < 13 || buffer[12] * 3 + 10 != sz)
+            // Size of SOF is at least 8 + 3 * bands;
+            if (sz < 11 || buffer[7] * 3 + 8 != sz)
                 goto ERR_NOTJPEG;
 
             // precision in bits is stored in the byte right after the chunk size
@@ -74,7 +74,7 @@ const char* jpeg_peek(const storage_manager& src, Raster& raster)
             // Pick up raster size            
             raster.size.y = 256ull * buffer[3] + buffer[4];
             raster.size.x = 256ull * buffer[5] + buffer[6];
-            raster.size.c = buffer[12];
+            raster.size.c = buffer[7];
 
             raster.format = IMG_JPEG;
             return nullptr; // Normal exit, found the header
