@@ -112,9 +112,9 @@ const char* png_peek(const storage_manager& src, Raster& raster)
 
                 Color    Allowed        Interpretation
                 Type    Bit Depths
-            
+
                 0       1, 2, 4, 8, 16  Each pixel is a grayscale sample.
-            
+
                 2       8, 16           Each pixel is an R, G, B triple.
 
                 3       1, 2, 4, 8      Each pixel is a palette index;
@@ -126,6 +126,12 @@ const char* png_peek(const storage_manager& src, Raster& raster)
                 6       8, 16           Each pixel is an R, G, B triple,
                                         followed by an alpha sample.
             */
+
+            auto ctype = buffer[9];
+            static const uint8_t bands[] = { 1, 255, 3, 1, 255, 2, 255, 4};
+            if (ctype > 6 || bands[ctype] > 4)
+                return ERR_DIFFERENT;
+            raster.size.c = bands[ctype];
 
             // buffer[10] is compression method, only 0 is defined
             if (buffer[10])
