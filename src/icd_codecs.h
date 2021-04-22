@@ -187,10 +187,10 @@ struct codec_params {
     {
         for (auto &t : error_message)
             t = 0;
-    };
+    }
 
-    DLL_PUBLIC size_t min_buffer_size() const {
-        return getTypeSize(raster.dt, raster.size.x * raster.size.y);
+    DLL_PUBLIC size_t get_buffer_size() const {
+        return getTypeSize(raster.dt, raster.size.x * raster.size.y * raster.size.c);
     }
 
     Raster raster;
