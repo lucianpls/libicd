@@ -3,7 +3,8 @@ TARGET = libicd.so
 C_SRC = JPEG12.cpp JPEG8.cpp JPEG_codec.cpp LERC_codec.cpp PNG_codec.cpp \
 	Packer_RLE.cpp icd_codecs.cpp
 
-HEADERS = 
+EXP_HEADERS = icd_codecs.h
+HEADERS = BitMask2D.h JPEG_codec.h $(EXP_HEADERS)
 
 OBJECTS = $(C_SRC:.cpp=.o) libjpeg12.o Lerc1Image.o
 
@@ -19,7 +20,7 @@ include ./Makefile.lcl
 
 default	: $(TARGET)
 
-$(TARGET) : $(OBJECTS)
+$(TARGET) : $(OBJECTS) $(HEADERS)
 	$(CXX) -zdefs -shared -o $@ $(OBJECTS) $(LIBS)
 
 %.o : %.cpp
@@ -37,8 +38,9 @@ Lerc1Image.o	:	lerc1/Lerc1Image.o
 lerc1/LercImage.o	:
 	$(MAKE) -C lerc1
 
-install: $(TARGET)
-	$(CP) $^ $(PREFIX)/lib
+install: $(TARGET) $(EXP_HEADERS)
+	$(CP) $< $(PREFIX)/lib
+	$(CP) $(EXP_HEADERS) $(PREFIX)/include
 
 clean:
 	$(RM) -rf $(TARGET) $(OBJECTS)
