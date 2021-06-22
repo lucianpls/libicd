@@ -37,6 +37,9 @@ Lerc1Image.o	:	lerc1/Lerc1Image.o
 lerc1/LercImage.o	:
 	$(MAKE) -C lerc1
 
+install: $(TARGET)
+	$(CP) $^ $(PREFIX)/lib
+
 clean:
 	$(RM) -rf $(TARGET) $(OBJECTS)
 	$(MAKE) -C jpeg12-6b clean

@@ -44,8 +44,9 @@ size_t getTypeSize(ICDDataType dt, size_t n) {
         return 4 * n;
     case ICDT_Double:
         return 8 * n;
+    default:
+        return ~0;
     }
-    return ~0;
 }
 
 IMG_T getFMT(const char *name) {
