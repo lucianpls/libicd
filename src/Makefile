@@ -16,7 +16,8 @@ FILES = $(C_SRC) $(HEADERS)
 
 LIBS = -ljpeg -lpng -lz
 
-include ./Makefile.lcl
+MAKEOPT ?= Makefile.lcl
+include $(MAKEOPT)
 
 default	: $(TARGET)
 
@@ -39,12 +40,10 @@ lerc1/LercImage.o	:
 	$(MAKE) -C lerc1
 
 install: $(TARGET) $(EXP_HEADERS)
-	$(CP) $< $(PREFIX)/lib
-	$(CP) $(EXP_HEADERS) $(PREFIX)/include
+	$(SUDO) $(CP) $< $(PREFIX)/lib
+	$(SUDO) $(CP) $(EXP_HEADERS) $(PREFIX)/include
 
 clean:
 	$(RM) -rf $(TARGET) $(OBJECTS)
 	$(MAKE) -C jpeg12-6b clean
 	$(MAKE) -C lerc1 clean
-
-
