@@ -46,7 +46,7 @@
 #endif
 
 #else
-
+// Not windows
 #if __GNUC__ >= 4
 #define DLL_PUBLIC __attribute__ ((visibility ("default")))
 #define DLL_LOCAL  __attribute__ ((visibility ("hidden")))
@@ -145,26 +145,26 @@ DLL_PUBLIC size_t getTypeSize(ICDDataType dt, size_t num = 1);
 // Return a data type by name
 DLL_PUBLIC ICDDataType getDT(const char* name);
 
-struct sz {
+struct sz5 {
     size_t x, y, z, c, l;
-    const bool operator==(const struct sz& other) {
+    const bool operator==(const sz5& other) {
         return (x == other.x) & (y == other.y) & (z == other.z) & (c == other.c) & (l == other.l);
     }
-    const bool operator!=(const struct sz& other) {
+    const bool operator!=(const sz5& other) {
         return !operator==(other);
     }
 };
 
 struct storage_manager {
     storage_manager(void) : buffer(nullptr), size(0) {}
-    storage_manager(void* ptr, size_t sz) :
-        buffer(ptr), size(sz) {};
+    storage_manager(void* ptr, size_t _size) :
+        buffer(ptr), size(_size) {};
     void* buffer;
     size_t size; // In bytes
 };
 
 struct Raster {
-    struct sz size;
+    sz5 size;
     double ndv, min, max, res;
     bool has_ndv, has_min, has_max;
     ICDDataType dt;
