@@ -12,11 +12,23 @@
 #include <png.h>
 #include <string>
 #include <cstring>
-
+#include <cassert>
 
 NS_ICD_START
 
 // TODO: Add palette PNG support, possibly other fancy options
+
+png_params::png_params(const Raster& r) : codec_params(r)
+    , bit_depth((raster.dt == ICDT_Byte) ? 8 : 16)
+    , color_type(0)
+    , compression_level(6)
+    , has_transparency(false)
+{
+    assert(raster.size.c < 5);
+    static int ctypes[] = {PNG_COLOR_TYPE_GRAY , PNG_COLOR_TYPE_GA , PNG_COLOR_TYPE_RGB , PNG_COLOR_TYPE_RGBA };
+    color_type = ctypes[raster.size.c - 1];
+    has_transparency = color_type & 1;
+}
 
 // Memory output doesn't need flushing
 static void flush_png(png_structp) {};

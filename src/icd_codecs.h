@@ -189,8 +189,9 @@ struct Raster {
 //
 struct codec_params {
     codec_params(const Raster& r) :
-        raster(r), 
-        line_stride(getTypeSize(raster.dt, raster.size.x * raster.size.c)), 
+        raster(r),
+        line_stride(getTypeSize(raster.dt, raster.size.x* raster.size.c)),
+        error_message(""),
         modified(false)
     {
         for (auto &t : error_message)
@@ -212,10 +213,13 @@ struct codec_params {
 
 // Specialized by format, for encode
 struct jpeg_params : codec_params {
+    jpeg_params(const Raster& r) : codec_params(r), quality(75) {}
     int quality;
 };
 
 struct png_params : codec_params {
+    png_params(const Raster& r);
+
     // As defined by PNG
     int color_type, bit_depth;
     // 0 to 9
@@ -227,7 +231,11 @@ struct png_params : codec_params {
 };
 
 struct lerc_params : codec_params {
-    float prec; // half of quantization step
+    lerc_params(const Raster& r) : codec_params(r), prec(r.res / 2) {
+        if (r.dt < ICDT_Float && prec < 0.5)
+            prec = 0.5;
+    }
+    double prec; // half of quantization step
 };
 
 // Generic image decode dispatcher, parameters should be already set to what is expected
@@ -244,8 +252,6 @@ DLL_PUBLIC const char* stride_decode(codec_params& params, storage_manager& src,
 DLL_PUBLIC const char* jpeg_peek(const storage_manager& src, Raster& raster);
 DLL_PUBLIC const char* jpeg_stride_decode(codec_params& params, storage_manager& src, void* buffer);
 DLL_PUBLIC const char* jpeg_encode(jpeg_params& params, storage_manager& src, storage_manager& dst);
-// Based on the raster configuration, populates a jpeg parameter structure, must call before encode and decode
-DLL_PUBLIC int set_jpeg_params(const Raster& raster, codec_params* params);
 
 // In PNG_codec.cpp
 // raster defines the expected tile
@@ -256,15 +262,11 @@ DLL_PUBLIC int set_jpeg_params(const Raster& raster, codec_params* params);
 DLL_PUBLIC const char* png_peek(const storage_manager& src, Raster& raster);
 DLL_PUBLIC const char* png_stride_decode(codec_params& params, storage_manager& src, void* buffer);
 DLL_PUBLIC const char* png_encode(png_params& params, storage_manager& src, storage_manager& dst);
-// Based on the raster configuration, populates a png parameter structure, must call before encode and decode
-DLL_PUBLIC int set_png_params(const Raster& raster, png_params* params);
 
 // In LERC_codec.cpp
 DLL_PUBLIC const char* lerc_peek(const storage_manager& src, Raster& raster);
 DLL_PUBLIC const char* lerc_stride_decode(codec_params& params, storage_manager& src, void* buffer);
 DLL_PUBLIC const char* lerc_encode(lerc_params& params, storage_manager& src, storage_manager& dst);
-// Based on the raster configuration, populates a png parameter structure
-DLL_PUBLIC int set_lerc_params(const Raster& raster, lerc_params* params);
 
 NS_END
 #endif
