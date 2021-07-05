@@ -19,8 +19,8 @@ NS_ICD_START
 // TODO: Add palette PNG support, possibly other fancy options
 
 png_params::png_params(const Raster& r) : codec_params(r)
-    , bit_depth((raster.dt == ICDT_Byte) ? 8 : 16)
     , color_type(0)
+    , bit_depth((raster.dt == ICDT_Byte) ? 8 : 16)
     , compression_level(6)
     , has_transparency(false)
 {
