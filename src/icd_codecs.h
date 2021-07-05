@@ -28,10 +28,19 @@
 // Default behavior is system depenent
 //
 
+#ifdef DLL_PUBLIC
+#undef DLL_PUBLIC
+#endif
+
+#ifdef DLL_LOCAL
+#undef DLL_LOCAL
+#endif
+
 #if defined _WIN32 || defined __CYGWIN__
 #define DLL_LOCAL
 
 #ifdef LIBICD_EXPORTS
+
 #ifdef __GNUC__
 #define DLL_PUBLIC __attribute__ ((dllexport))
 #else
@@ -135,7 +144,7 @@ typedef enum {
 // IMG_ANY is the default, but no checks can be done at config time
 // On input, it decodes to byte, on output it is equivalent to IMG_JPEG
 // JPEG is always JPEG_ZEN
-enum IMG_T { IMG_ANY, IMG_JPEG, IMG_PNG, IMG_LERC, IMG_INVALID };
+enum IMG_T { IMG_ANY = 0, IMG_JPEG, IMG_PNG, IMG_LERC, IMG_INVALID };
 
 DLL_PUBLIC IMG_T getFMT(const char *name);
 
@@ -159,16 +168,15 @@ struct storage_manager {
     storage_manager(void) : buffer(nullptr), size(0) {}
     storage_manager(void* ptr, size_t _size) :
         buffer(ptr), size(_size) {};
-    void* buffer;
+    void * buffer;
     size_t size; // In bytes
 };
 
 struct Raster {
     sz5 size;
     double ndv, min, max, res;
-    bool has_ndv, has_min, has_max;
+    int has_ndv, has_min, has_max;
     ICDDataType dt;
-    int maxtilesize;
     IMG_T format;
     // Populates size from a compressed source
     const char* init(const storage_manager& src);
