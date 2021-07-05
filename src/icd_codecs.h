@@ -188,7 +188,7 @@ struct Raster {
 // For encoders, see format specific extensions below
 //
 struct codec_params {
-    codec_params(const Raster& r) :
+    DLL_PUBLIC codec_params(const Raster& r) :
         raster(r),
         line_stride(getTypeSize(raster.dt, raster.size.x* raster.size.c)),
         error_message(""),
@@ -213,12 +213,12 @@ struct codec_params {
 
 // Specialized by format, for encode
 struct jpeg_params : codec_params {
-    jpeg_params(const Raster& r) : codec_params(r), quality(75) {}
+    DLL_PUBLIC jpeg_params(const Raster& r) : codec_params(r), quality(75) {}
     int quality;
 };
 
 struct png_params : codec_params {
-    png_params(const Raster& r);
+    DLL_PUBLIC png_params(const Raster& r);
 
     // As defined by PNG
     int color_type, bit_depth;
