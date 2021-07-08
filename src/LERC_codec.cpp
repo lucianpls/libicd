@@ -19,7 +19,6 @@
 USING_NAMESPACE_LERC1
 NS_ICD_START
 
-
 // Reads and unaligned value, increments the pointer
 template <typename T>
 void READP(T& X, const char*& p) {
@@ -191,13 +190,6 @@ const char* lerc_stride_decode(codec_params& params, storage_manager& src, void*
 #undef UFILL
 
     return nullptr; // Success
-}
-
-int set_lerc_params(const Raster& raster, lerc_params* params) {
-    memset(params, 0, sizeof(lerc_params));
-    params->raster = raster;
-    params->prec = static_cast<float>(raster.res);
-    return 0;
 }
 
 NS_END

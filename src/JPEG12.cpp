@@ -183,7 +183,7 @@ const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, voi
     jpeg_read_header(&cinfo, TRUE);
     cinfo.dct_method = JDCT_FLOAT;
 
-    const sz& size = params.raster.size;
+    const sz5& size = params.raster.size;
     if (!(size.c == 1 || size.c == 3))
         sprintf(params.error_message, "JPEG with wrong number of components");
 

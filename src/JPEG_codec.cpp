@@ -143,11 +143,4 @@ const char *jpeg_encode(jpeg_params &params, storage_manager &src, storage_manag
     return message;
 }
 
-int set_jpeg_params(const Raster& raster, codec_params* params)
-{
-    memset(params, 0, sizeof(codec_params));
-    params->raster = raster;
-    return 0;
-}
-
 NS_END // ICD
