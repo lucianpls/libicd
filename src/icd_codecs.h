@@ -144,7 +144,7 @@ typedef enum {
 // IMG_ANY is the default, but no checks can be done at config time
 // On input, it decodes to byte, on output it is equivalent to IMG_JPEG
 // JPEG is always JPEG_ZEN
-enum IMG_T { IMG_ANY = 0, IMG_JPEG, IMG_PNG, IMG_LERC, IMG_INVALID };
+enum IMG_T { IMG_ANY = 0, IMG_JPEG, IMG_PNG, IMG_LERC, IMG_UNKNOWN };
 
 DLL_PUBLIC IMG_T getFMT(const char *name);
 

@@ -57,7 +57,7 @@ IMG_T getFMT(const char *name) {
         return IMG_PNG;
     if (s == "raster/lerc")
         return IMG_LERC;
-    return IMG_INVALID;
+    return IMG_UNKNOWN;
 }
 
 
@@ -66,7 +66,7 @@ const char* stride_decode(codec_params& params, storage_manager& src, void* buff
     const char* error_message = nullptr;
     uint32_t sig = 0;
     memcpy(&sig, src.buffer, sizeof(sig));
-    params.raster.format = IMG_INVALID;
+    params.raster.format = IMG_UNKNOWN;
     switch (sig)
     {
     case JPEG_SIG:
