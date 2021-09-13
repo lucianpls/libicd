@@ -190,12 +190,14 @@ struct Raster {
 struct codec_params {
     DLL_PUBLIC codec_params(const Raster& r) :
         raster(r),
-        line_stride(getTypeSize(raster.dt, raster.size.x* raster.size.c)),
+        line_stride(0),
         error_message(""),
         modified(false)
-    {
-        for (auto &t : error_message)
-            t = 0;
+    { reset(); }
+
+    // Call if modifying the raster
+    DLL_PUBLIC void reset() {
+        line_stride = getTypeSize(raster.dt, raster.size.x * raster.size.c);
     }
 
     DLL_PUBLIC size_t get_buffer_size() const {
