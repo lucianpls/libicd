@@ -267,6 +267,11 @@ const char *png_encode(png_params &params, storage_manager &src, storage_manager
     auto const& rsize = params.raster.size;
     png_uint_32 width = static_cast<png_uint_32>(rsize.x);
     png_uint_32 height = static_cast<png_uint_32>(rsize.y);
+    // Check inputs for sanity
+    if (getTypeSize(params.raster.dt) > 2)
+        return "Invalid PNG encoding data type";
+    if (rsize.x * rsize.y * getTypeSize(params.raster.dt) > src.size)
+        return "Insufficient input data for PNG encoding";
     // Use a vector so it cleans up itself
     std::vector<png_bytep> png_rowp(height);
 
