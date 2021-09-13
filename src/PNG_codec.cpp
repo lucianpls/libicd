@@ -305,6 +305,11 @@ const char *png_encode(png_params &params, storage_manager &src, storage_manager
     auto rowbytes = png_get_rowbytes(pngp, infop);
     for (size_t i = 0; i < png_rowp.size(); i++)
         png_rowp[i] = reinterpret_cast<png_bytep>(src.buffer) + i * rowbytes;
+    // Last check, do we have enough input
+    if (png_rowp.size() * rowbytes > src.size) {
+        png_destroy_write_struct(&pngp, &infop);
+        return "Insufficient input data for PNG encoding";
+    }
 
     png_write_info(pngp, infop);
     png_write_image(pngp, png_rowp.data());
