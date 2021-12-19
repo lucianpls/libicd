@@ -140,7 +140,7 @@ const char* png_peek(const storage_manager& src, Raster& raster)
             */
 
             auto ctype = buffer[9];
-            static const uint8_t bands[] = { 1, 255, 3, 1, 255, 2, 255, 4};
+            static const uint8_t bands[] = { 1, 255, 3, 1, 2, 255, 4 };
             if (ctype > 6 || bands[ctype] > 4)
                 return ERR_DIFFERENT;
             raster.size.c = bands[ctype];
