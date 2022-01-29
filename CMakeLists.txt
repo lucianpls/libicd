@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 cmake_policy(SET CMP0076 NEW)
 
 project(ICD LANGUAGES CXX C)
-
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(JP12_SOURCES
@@ -97,24 +97,19 @@ list(TRANSFORM ICD_HEADERS PREPEND src/)
 list(APPEND ICD_HEADERS ${JP12_HEADERS})
 # message("${ICD_HEADERS}")
 
+find_package(JPEG REQUIRED)
+find_package(PNG REQUIRED)
 
 add_library(libicd SHARED)
-
 if (MSVC)
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 target_link_options(libicd PUBLIC "/NODEFAULTLIB:LIBCMT")
-# target_link_options(libicd PUBLIC "/NODEFAULTLIB:MSVCRT" "/NODEFAULTLIB:LIBCMT")
 endif (MSVC)
 
 target_sources(libicd PRIVATE ${ICD_SOURCES} ${ICD_HEADERS})
 # target_sources(libicd PUBLIC)
 set_target_properties(libicd PROPERTIES PUBLIC_HEADER icd_codecs.h)
-include_directories(${PROJECT_SOURCE_DIR}/jpeg ${PROJECT_SOURCE_DIR}/png)
-
-# Assume the dependent library are installed already
-set(EXTRA_LIBS jpeg libpng15 zlib)
-list(TRANSFORM EXTRA_LIBS APPEND .lib)
-list(TRANSFORM EXTRA_LIBS PREPEND ${CMAKE_INSTALL_PREFIX}/lib/)
-target_link_libraries(libicd PRIVATE ${EXTRA_LIBS})
+include_directories(${JPEG_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS})
+target_link_libraries(libicd PRIVATE ${JPEG_LIBRARIES} ${PNG_LIBRARIES})
 
 install(TARGETS libicd PUBLIC_HEADER)
