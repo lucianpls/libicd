@@ -39,7 +39,7 @@
 #if defined _WIN32 || defined __CYGWIN__
 #define DLL_LOCAL
 
-#ifdef LIBICD_EXPORTS
+#ifdef libicd_EXPORTS
 
 #ifdef __GNUC__
 #define DLL_PUBLIC __attribute__ ((dllexport))
