@@ -223,4 +223,9 @@
       <Filter>Support Files</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="CMakeLists.txt">
+      <Filter>Support Files</Filter>
+    </Text>
+  </ItemGroup>
 </Project>
