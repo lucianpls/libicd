@@ -37,6 +37,7 @@ Makefile.lcl
 
 # VS stuff
 .vs
+.vscode
 *.user
 *.suo
 *.sdf

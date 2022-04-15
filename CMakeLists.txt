@@ -1,10 +1,18 @@
 cmake_minimum_required(VERSION 3.5)
 cmake_policy(SET CMP0076 NEW)
 
-project(ICD LANGUAGES CXX C)
+project(libicd
+    DESCRIPTION "AHTSE Image Codec Library"
+    VERSION 0.9.1
+    LANGUAGES CXX C
+)
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+option(BUILD_SHARED_LIBS "Library style" On)
+
+set(namespace "AHTSE")
 
 set(JP12_SOURCES
     jcapimin.c
@@ -100,16 +108,65 @@ list(APPEND ICD_HEADERS ${JP12_HEADERS})
 find_package(JPEG REQUIRED)
 find_package(PNG REQUIRED)
 
-add_library(libicd SHARED)
+add_library(${PROJECT_NAME})
 if (MSVC)
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-target_link_options(libicd PUBLIC "/NODEFAULTLIB:LIBCMT")
+target_link_options(${PROJECT_NAME} PUBLIC "/NODEFAULTLIB:LIBCMT")
 endif (MSVC)
 
-target_sources(libicd PRIVATE ${ICD_SOURCES} ${ICD_HEADERS})
+target_sources(${PROJECT_NAME} PRIVATE ${ICD_SOURCES} ${ICD_HEADERS})
 # target_sources(libicd PUBLIC)
-set_target_properties(libicd PROPERTIES PUBLIC_HEADER icd_codecs.h)
-include_directories(${JPEG_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS})
-target_link_libraries(libicd PRIVATE ${JPEG_LIBRARIES} ${PNG_LIBRARIES})
+set_target_properties(${PROJECT_NAME} PROPERTIES 
+    PUBLIC_HEADER src/icd_codecs.h
+    DEBUG_POSTFIX "d"
+)
 
-install(TARGETS libicd PUBLIC_HEADER)
+# include_directories(${JPEG_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+        # Where the library itself looks for internal headers
+        ${JPEG_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS}
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${JPEG_LIBRARIES} ${PNG_LIBRARIES})
+
+include(GNUInstallDirs)
+
+install(TARGETS ${PROJECT_NAME}
+    EXPORT "${PROJECT_NAME}Targets"
+    # PUBLIC_HEADER
+    # INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(EXPORT "${PROJECT_NAME}Targets"
+    FILE "${PROJECT_NAME}Targets.cmake"
+    NAMESPACE ${namespace}::
+    DESTINATION cmake
+)
+
+include(CMakePackageConfigHelpers)
+
+# generate the version file for the config file
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+    VERSION "${version}"
+    COMPATIBILITY AnyNewerVersion
+)
+# create config file
+configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    INSTALL_DESTINATION cmake
+)
+# install config files
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+    DESTINATION cmake
+)
+# generate the export targets for the build tree
+export(EXPORT "${PROJECT_NAME}Targets"
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Targets.cmake"
+    NAMESPACE ${namespace}::
+)
