@@ -110,18 +110,16 @@ find_package(PNG REQUIRED)
 
 add_library(${PROJECT_NAME})
 if (MSVC)
-add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-target_link_options(${PROJECT_NAME} PUBLIC "/NODEFAULTLIB:LIBCMT")
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+    target_link_options(${PROJECT_NAME} PUBLIC "/NODEFAULTLIB:LIBCMT")
 endif (MSVC)
 
 target_sources(${PROJECT_NAME} PRIVATE ${ICD_SOURCES} ${ICD_HEADERS})
-# target_sources(libicd PUBLIC)
 set_target_properties(${PROJECT_NAME} PROPERTIES 
     PUBLIC_HEADER src/icd_codecs.h
     DEBUG_POSTFIX "d"
 )
 
-# include_directories(${JPEG_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME}
     PRIVATE
         # Where the library itself looks for internal headers
@@ -137,7 +135,7 @@ include(GNUInstallDirs)
 install(TARGETS ${PROJECT_NAME}
     EXPORT "${PROJECT_NAME}Targets"
     # PUBLIC_HEADER
-    # INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 install(EXPORT "${PROJECT_NAME}Targets"
