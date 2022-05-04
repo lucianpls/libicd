@@ -14,7 +14,7 @@ option(BUILD_SHARED_LIBS "Library style" On)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING
-        "Choose type of build, options are: Debug Release RelWithDebInfo MinSizeRel" FORCE)
+        "Choose type of build, options are: Debug Release RelWithDebInfo MinSizeRel")
 endif(NOT CMAKE_BUILD_TYPE)
 
 set(namespace "AHTSE")
