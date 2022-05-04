@@ -12,6 +12,11 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(BUILD_SHARED_LIBS "Library style" On)
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+        "Choose type of build, options are: Debug Release RelWithDebInfo MinSizeRel" FORCE)
+endif(NOT CMAKE_BUILD_TYPE)
+
 set(namespace "AHTSE")
 
 set(JP12_SOURCES
@@ -118,6 +123,7 @@ target_sources(${PROJECT_NAME} PRIVATE ${ICD_SOURCES} ${ICD_HEADERS})
 set_target_properties(${PROJECT_NAME} PROPERTIES 
     PUBLIC_HEADER src/icd_codecs.h
     DEBUG_POSTFIX "d"
+    PREFIX ""
 )
 
 target_include_directories(${PROJECT_NAME}
