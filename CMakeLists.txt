@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.5)
 cmake_policy(SET CMP0076 NEW)
 
+# Has to be before project()
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+        "Choose type of build, options are: Debug Release RelWithDebInfo MinSizeRel")
+endif(NOT CMAKE_BUILD_TYPE)
+
 project(libicd
     DESCRIPTION "AHTSE Image Codec Library"
     VERSION 0.9.1
@@ -11,11 +17,6 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(BUILD_SHARED_LIBS "Library style" On)
-
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING
-        "Choose type of build, options are: Debug Release RelWithDebInfo MinSizeRel")
-endif(NOT CMAKE_BUILD_TYPE)
 
 set(namespace "AHTSE")
 
