@@ -97,9 +97,6 @@ set(ICD_SOURCES
     PNG_codec.cpp
     lerc1/Lerc1Image.cpp
 )
-list(TRANSFORM ICD_SOURCES PREPEND src/)
-list(APPEND ICD_SOURCES ${JP12_SOURCES})
-# message("${ICD_SOURCES}")
 
 set(ICD_HEADERS
     BitMask2D.h
@@ -107,12 +104,23 @@ set(ICD_HEADERS
     JPEG_codec.h
     lerc1/Lerc1Image.h
 )
-list(TRANSFORM ICD_HEADERS PREPEND src/)
-list(APPEND ICD_HEADERS ${JP12_HEADERS})
-# message("${ICD_HEADERS}")
 
 find_package(JPEG REQUIRED)
 find_package(PNG REQUIRED)
+find_package(libQB3) # libQB3_INCLUDE_DIRS libQB3_LIBRARIES
+
+if (${libQB3_FOUND})
+    add_compile_definitions(LIBQB3_FOUND)
+	list(APPEND ICD_SOURCES QB3_codec.cpp)
+endif ()
+
+list(TRANSFORM ICD_SOURCES PREPEND src/)
+list(APPEND ICD_SOURCES ${JP12_SOURCES})
+# message("${ICD_SOURCES}")
+
+list(TRANSFORM ICD_HEADERS PREPEND src/)
+list(APPEND ICD_HEADERS ${JP12_HEADERS})
+# message("${ICD_HEADERS}")
 
 add_library(${PROJECT_NAME})
 if (MSVC)
@@ -135,7 +143,7 @@ target_include_directories(${PROJECT_NAME}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_link_libraries(${PROJECT_NAME} PRIVATE ${JPEG_LIBRARIES} ${PNG_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${JPEG_LIBRARIES} ${PNG_LIBRARIES} QB3::libQB3)
 
 include(GNUInstallDirs)
 

@@ -79,8 +79,9 @@
 // JPEG has two signatures
 #define JPEG1_SIG 0xffd8ffe1
 
-// Lerc is only supported on little endian
+// Lerc and QB3 are only supported on little endian
 #define LERC_SIG 0x436e745a
+#define QB3_SIG 0x80334251
 
 // This one is not an image type, but an encoding
 #define GZIP_SIG 0x1f8b0800
@@ -113,6 +114,7 @@
 #define JPEG_SIG 0xe0ffd8ff
 #define JPEG1_SIG 0xe1ffd8ff
 #define LERC_SIG 0x5a746e43
+#define QB3_SIG 0x51423380
 
 // This one is not an image type, but an encoding
 #define GZIP_SIG 0x00088b1f
@@ -245,6 +247,9 @@ struct lerc_params : codec_params {
 DLL_PUBLIC const char* image_peek(const storage_manager& src, Raster& raster);
 DLL_PUBLIC const char* stride_decode(codec_params& params, storage_manager& src, void* buffer);
 
+// TODO: These are bad names because of the prefix matching the library, they should change 
+// to use suffix. Better yet, they should not be part of the public interface.
+
 // In JPEG_codec.cpp
 // raster defines the expected tile
 // src contains the input JPEG
@@ -269,6 +274,13 @@ DLL_PUBLIC const char* png_encode(png_params& params, storage_manager& src, stor
 DLL_PUBLIC const char* lerc_peek(const storage_manager& src, Raster& raster);
 DLL_PUBLIC const char* lerc_stride_decode(codec_params& params, storage_manager& src, void* buffer);
 DLL_PUBLIC const char* lerc_encode(lerc_params& params, storage_manager& src, storage_manager& dst);
+
+#ifdef LIBQB3_FOUND
+// In QB3_codec.cpp
+DLL_PUBLIC const char* peek_qb3(const storage_manager& src, Raster& raster);
+DLL_PUBLIC const char* stride_decode_qb3(codec_params& params, storage_manager& src, void* buffer);
+DLL_PUBLIC const char* encode_qb3(lerc_params& params, storage_manager& src, storage_manager& dst);
+#endif
 
 NS_END
 #endif
