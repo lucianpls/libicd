@@ -111,7 +111,7 @@ find_package(libQB3) # libQB3_INCLUDE_DIRS libQB3_LIBRARIES
 
 if (${libQB3_FOUND})
     add_compile_definitions(LIBQB3_FOUND)
-	list(APPEND ICD_SOURCES QB3_codec.cpp)
+    list(APPEND ICD_SOURCES QB3_codec.cpp)
 endif ()
 
 list(TRANSFORM ICD_SOURCES PREPEND src/)
