@@ -83,7 +83,14 @@ const char* stride_decode(codec_params& params, storage_manager& src, void* buff
         error_message = lerc_stride_decode(params, src, buffer);
         break;
     default:
-        error_message = "Decode requested for unknown format";
+        // This could be netpbm
+        if (!is_netpbm(src)) {
+            error_message = "Decode requested for unknown format";
+            return error_message;
+        }
+        // netpbm
+        params.raster.format = IMG_NETPBM;
+        error_message = netpbm_stride_decode(params, src, buffer);
     }
     return error_message;
 }
@@ -102,6 +109,9 @@ const char* image_peek(const storage_manager& src, Raster& raster) {
         return png_peek(src, raster);
     case LERC_SIG:
         return lerc_peek(src, raster);
+    default:
+        if (is_netpbm(src))
+            return netpbm_peek(src, raster);
     }
     return "Unknown format";
 }

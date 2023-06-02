@@ -162,7 +162,7 @@ typedef enum {
 // IMG_ANY is the default, but no checks can be done at config time
 // On input, it decodes to byte, on output it is equivalent to IMG_JPEG
 // JPEG is always JPEG_ZEN
-enum IMG_T { IMG_ANY = 0, IMG_JPEG, IMG_PNG, IMG_LERC, IMG_UNKNOWN };
+enum IMG_T { IMG_ANY = 0, IMG_JPEG, IMG_PNG, IMG_LERC, IMG_NETPBM, IMG_UNKNOWN };
 
 DLL_PUBLIC IMG_T getFMT(const char *name);
 
@@ -175,7 +175,8 @@ DLL_PUBLIC ICDDataType getDT(const char* name);
 struct sz5 {
     size_t x, y, z, c, l;
     const bool operator==(const sz5& other) {
-        return (x == other.x) & (y == other.y) & (z == other.z) & (c == other.c) & (l == other.l);
+        return (x == other.x) & (y == other.y) 
+            & (z == other.z) & (c == other.c) & (l == other.l);
     }
     const bool operator!=(const sz5& other) {
         return !operator==(other);
@@ -251,11 +252,15 @@ struct png_params : codec_params {
 };
 
 struct lerc_params : codec_params {
-    lerc_params(const Raster& r) : codec_params(r), prec(r.res / 2) {
+    DLL_PUBLIC lerc_params(const Raster& r) : codec_params(r), prec(r.res / 2) {
         if (r.dt < ICDT_Float && prec < 0.5)
             prec = 0.5;
     }
     double prec; // half of quantization step
+};
+
+struct netpbm_params : codec_params {
+    DLL_PUBLIC netpbm_params(const Raster& r) : codec_params(r) {}
 };
 
 // Generic image decode dispatcher, parameters should be already set to what is expected
@@ -287,6 +292,15 @@ DLL_PUBLIC const char* png_encode(png_params& params, storage_manager& src, stor
 DLL_PUBLIC const char* lerc_peek(const storage_manager& src, Raster& raster);
 DLL_PUBLIC const char* lerc_stride_decode(codec_params& params, storage_manager& src, void* buffer);
 DLL_PUBLIC const char* lerc_encode(lerc_params& params, storage_manager& src, storage_manager& dst);
+
+// In netpbm_codec.cpp
+
+// Detect netpbm, returns 0 if not recognized
+DLL_PUBLIC int is_netpbm(const storage_manager& src);
+
+DLL_PUBLIC const char* netpbm_peek(const storage_manager& src, Raster& raster);
+DLL_PUBLIC const char* netpbm_stride_decode(codec_params& params, storage_manager& src, void* buffer);
+DLL_PUBLIC const char* netpbm_encode(lerc_params& params, storage_manager& src, storage_manager& dst);
 
 NS_END
 #endif

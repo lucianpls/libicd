@@ -25,7 +25,8 @@ png_params::png_params(const Raster& r) : codec_params(r)
     , has_transparency(false)
 {
     assert(raster.size.c < 5);
-    static int ctypes[] = {PNG_COLOR_TYPE_GRAY , PNG_COLOR_TYPE_GA , PNG_COLOR_TYPE_RGB , PNG_COLOR_TYPE_RGBA };
+    static int ctypes[] = {PNG_COLOR_TYPE_GRAY , PNG_COLOR_TYPE_GA , 
+        PNG_COLOR_TYPE_RGB , PNG_COLOR_TYPE_RGBA };
     color_type = ctypes[raster.size.c - 1];
     has_transparency = color_type & 1;
 }
@@ -111,7 +112,8 @@ const char* png_peek(const storage_manager& src, Raster& raster)
             raster.size.x = readBE32(buffer);
             raster.size.y = readBE32(buffer + 4);
             // Bits per sample
-            auto bps = buffer[8]; // Valid values are 1, 2, 4, 8, 16, but we only handle 8 and 16
+            // Valid values are 1, 2, 4, 8, 16, but we only handle 8 and 16
+            auto bps = buffer[8];
             if (bps == 8)
                 raster.dt = ICDT_Byte;
             else if (bps == 16)

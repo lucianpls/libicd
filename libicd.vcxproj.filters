@@ -208,6 +208,9 @@
     <ClCompile Include="src\icd_codecs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\netpbm_codec.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\lerc1\Makefile">

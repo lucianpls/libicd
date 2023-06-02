@@ -225,6 +225,7 @@ copy /y $(ProjectDir)src\icd_codecs.h $(Prefix)include</Command>
     <ClCompile Include="src\JPEG_codec.cpp" />
     <ClCompile Include="src\lerc1\Lerc1Image.cpp" />
     <ClCompile Include="src\LERC_codec.cpp" />
+    <ClCompile Include="src\netpbm_codec.cpp" />
     <ClCompile Include="src\Packer_RLE.cpp" />
     <ClCompile Include="src\PNG_codec.cpp" />
   </ItemGroup>
