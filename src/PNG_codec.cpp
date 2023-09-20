@@ -237,6 +237,9 @@ const char *png_stride_decode(codec_params &params, storage_manager &src, void *
         png_set_swap(pngp);
 #endif
 
+    // turn on interlace handling, returns the number of passes
+    int number_of_passes = png_set_interlace_handling(pngp);
+
     // TODO: Decode to expected format
     // png_set_palette_to_rgb(pngp); // Palette to RGB
     // png_set_tRNS_to_alpha(pngp); // transparency to Alpha
