@@ -229,10 +229,7 @@ copy /y $(ProjectDir)src\icd_codecs.h $(Prefix)include</Command>
     <ClCompile Include="src\PNG_codec.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\jpeg12-6b\Makefile" />
     <None Include="src\lerc1\Makefile" />
-    <None Include="src\Makefile" />
-    <None Include="src\Makefile.lcl.example" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />
