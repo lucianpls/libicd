@@ -72,7 +72,6 @@ list(TRANSFORM JP12_SOURCES PREPEND src/jpeg12-6b/)
 # set_source_files_properties(${JP12_SOURCES} PROPERTIES LANGUAGE CXX)
 
 set(JP12_HEADERS
-    cderror.h
     jchuff.h
     jconfig.h
     jdct.h
