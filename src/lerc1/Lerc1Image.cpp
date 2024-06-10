@@ -198,6 +198,7 @@ int BitMaskV1::RLEsize() const
 // Lookup tables for number of bytes in float and int, forward and reverse
 static const Byte bits67[4] = {0x80, 0x40, 0xc0, 0};  // shifted left 6 bits
 static const Byte stib67[4] = {4, 2, 1, 0};           // Last one is not used
+
 static int numBytesUInt(unsigned int k)
 {
     return (k <= 0xff) ? 1 : (k <= 0xffff) ? 2 : 4;
@@ -304,33 +305,27 @@ unsigned int
 Lerc1Image::computeNumBytesNeededToWrite(double maxZError, bool onlyZPart,
                                          InfoFromComputeNumBytes *info) const
 {
-    int numBytesOpt;
     unsigned int sz =
-        (unsigned int)sCntZImage.size() + 4 * sizeof(int) + sizeof(double);
+        (unsigned int)(sCntZImage.size() + 4 * sizeof(int) + sizeof(double));
     if (!onlyZPart)
     {
-        float cntMin, cntMax;
-        cntMin = cntMax = static_cast<float>(mask.IsValid(0) ? 1.0f : 0.0f);
-        for (int k = 0; k < getSize() && cntMin == cntMax; k++)
-            if (mask.IsValid(k))
-                cntMax = 1.0f;
-            else
-                cntMin = 0.0f;
-
-        numBytesOpt = 0;
-        if (cntMin != cntMax)
-            numBytesOpt = mask.RLEsize();
-
+        auto m = mask.IsValid(0);
         info->numTilesVertCnt = 0;
         info->numTilesHoriCnt = 0;
-        info->numBytesCnt = numBytesOpt;
-        info->maxCntInImg = cntMax;
-
-        sz += 3 * sizeof(int) + sizeof(float) + numBytesOpt;
+        info->maxCntInImg = m;
+        info->numBytesCnt = 0;
+        for (int i = 0; i < getSize(); i++)
+            if (m != mask.IsValid(i))
+            {
+                info->numBytesCnt = mask.RLEsize();
+                info->maxCntInImg = 1;
+                break;
+            }
+        sz += 3 * sizeof(int) + sizeof(float) + info->numBytesCnt;
     }
 
     // z part
-    int numTilesVert, numTilesHori;
+    int numTilesVert, numTilesHori, numBytesOpt;
     float maxValInImg;
     if (!findTiling(maxZError, numTilesVert, numTilesHori, numBytesOpt,
                     maxValInImg))
@@ -432,6 +427,7 @@ bool Lerc1Image::read(Byte **ppByte, size_t &nRemainingBytes, double maxZError,
 #define RDVAR(PTR, VAR)                                                        \
     memcpy(&(VAR), (PTR), sizeof(VAR));                                        \
     (PTR) += sizeof(VAR)
+
     size_t len = sCntZImage.length();
     if (nRemainingBytes < len)
         return false;
@@ -801,8 +797,8 @@ bool Lerc1Image::writeZTile(Byte **ppByte, int &numBytes, int r0, int r1,
     }
     if (maxZError == 0 || !std::isfinite(zMin) || !std::isfinite(zMax) ||
         ((double)zMax - zMin) / (2 * maxZError) > MAXQ)
-    { // store valid pixels as floating point
-        *ptr++ = 0;  // flag
+    {  // store valid pixels as floating point
+        *ptr++ = 0;
         for (int row = r0; row < r1; row++)
             for (int col = c0; col < c1; col++)
                 if (IsValid(row, col))
@@ -816,11 +812,11 @@ bool Lerc1Image::writeZTile(Byte **ppByte, int &numBytes, int r0, int r1,
     }
     else
     {
-        Byte flag = 1; // bitstuffed int array
-        double f = 0.5 / maxZError; // conversion to int multiplier
+        Byte flag = 1;               // bitstuffed int array
+        double f = 0.5 / maxZError;  // conversion to int multiplier
         unsigned int maxElem = (unsigned int)(((double)zMax - zMin) * f + 0.5);
         if (maxElem == 0)
-            flag = 3;  // mark tile as constant zMin
+            flag = 3;               // mark tile as constant zMin
         int n = numBytesFlt(zMin);  // n in { 1, 2, 4 }
         *ptr++ = (flag | bits67[n - 1]);
         ptr = writeFlt(ptr, zMin, n);
@@ -964,7 +960,7 @@ bool Lerc1Image::readZTile(Byte **ppByte, size_t &nRemainingBytes, int r0,
 
     size_t numValid = idataVec.size();
     size_t i = 0;
-    double q = maxZErrorInFile * 2; // quanta
+    double q = maxZErrorInFile * 2;  // quanta
     for (int row = r0; row < r1; row++)
         for (int col = c0; col < c1; col++)
             if (IsValid(row, col))
