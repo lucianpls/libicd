@@ -33,8 +33,13 @@ png_params::png_params(const Raster& r) : codec_params(r)
 // Memory output doesn't need flushing
 static void flush_png(png_structp) {};
 
-// Do nothing for warnings
-static void pngWH(png_structp pngp, png_const_charp message) {};
+// Place a copy of the warning in the error message, don't exit
+static void pngWH(png_structp pngp, png_const_charp message)
+{
+    codec_params* params = reinterpret_cast<codec_params*>(png_get_error_ptr(pngp));
+    strncpy(params->error_message, "WARN:", 1024);
+    strncat(params->error_message + 5, message, 1019);
+}
 
 // Error function
 static void pngEH(png_structp pngp, png_const_charp message)
@@ -202,7 +207,7 @@ const char *png_stride_decode(codec_params &params, storage_manager &src, void *
     png_infop infop = nullptr;
     png_uint_32 width, height;
     int bit_depth, ct;
-    pngp = png_create_read_struct(PNG_LIBPNG_VER_STRING, &params, pngEH, pngEH);
+    pngp = png_create_read_struct(PNG_LIBPNG_VER_STRING, &params, pngEH, pngWH);
     if (!pngp)
         return "PNG error while creating decode PNG structure";
     infop = png_create_info_struct(pngp);
