@@ -137,7 +137,8 @@ DLL_PUBLIC ICDDataType getDT(const char* name);
 struct sz5 {
     size_t x, y, z, c, l;
     const bool operator==(const sz5& other) {
-        return (x == other.x) & (y == other.y) & (z == other.z) & (c == other.c) & (l == other.l);
+        return ((x == other.x) && (y == other.y) && (z == other.z)
+            && (c == other.c) && (l == other.l));
     }
     const bool operator!=(const sz5& other) {
         return !operator==(other);
