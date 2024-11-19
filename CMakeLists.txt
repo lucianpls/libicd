@@ -115,11 +115,9 @@ endif ()
 
 list(TRANSFORM ICD_SOURCES PREPEND src/)
 list(APPEND ICD_SOURCES ${JP12_SOURCES})
-# message("${ICD_SOURCES}")
 
 list(TRANSFORM ICD_HEADERS PREPEND src/)
 list(APPEND ICD_HEADERS ${JP12_HEADERS})
-# message("${ICD_HEADERS}")
 
 add_library(${PROJECT_NAME})
 if (MSVC)
@@ -128,21 +126,26 @@ if (MSVC)
 endif (MSVC)
 
 target_sources(${PROJECT_NAME} PRIVATE ${ICD_SOURCES} ${ICD_HEADERS})
-set_target_properties(${PROJECT_NAME} PROPERTIES 
-    PUBLIC_HEADER src/icd_codecs.h
-    DEBUG_POSTFIX "d"
-    PREFIX ""
-)
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE
         # Where the library itself looks for internal headers
         ${JPEG_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS}
     PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE ${JPEG_LIBRARIES} ${PNG_LIBRARIES} QB3::libQB3)
+
+include(GenerateExportHeader)
+generate_export_header(${PROJECT_NAME})
+
+set_target_properties(${PROJECT_NAME} PROPERTIES 
+    PUBLIC_HEADER "src/icd_codecs.h;${CMAKE_CURRENT_BINARY_DIR}/libicd_export.h"
+    DEBUG_POSTFIX "d"
+    PREFIX ""
+)
+
 
 include(GNUInstallDirs)
 

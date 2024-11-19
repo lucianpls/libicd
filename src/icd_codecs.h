@@ -13,58 +13,18 @@
 #if !defined(ICD_CODECS_H)
 #define ICD_CODECS_H
 
+#include <cstdint>
+#include <cstddef>
+
 #if !defined(NS_ICD_START)
 #define NS_ICD_START namespace ICD {
 #define NS_END }
 #define NS_ICD_USE using namespace ICD;
 #endif
 
-#include <cstdint>
-#include <cstddef>
-
-//
-// Define DLL_PUBLIC to make a symbol visible
-// Define DLL_LOCAL to hide a symbol
-// Default behavior is system depenent
-//
-
-#ifdef DLL_PUBLIC
-#undef DLL_PUBLIC
-#endif
-
-#ifdef DLL_LOCAL
-#undef DLL_LOCAL
-#endif
-
-#if defined _WIN32 || defined __CYGWIN__
-#define DLL_LOCAL
-
-#ifdef libicd_EXPORTS
-
-#ifdef __GNUC__
-#define DLL_PUBLIC __attribute__ ((dllexport))
-#else
-#define DLL_PUBLIC __declspec(dllexport)
-#endif
-#else
-#ifdef __GNUC__
-#define DLL_PUBLIC __attribute__ ((dllimport))
-#else
-#define DLL_PUBLIC __declspec(dllimport)
-#endif
-#endif
-
-#else
-// Not windows
-#if __GNUC__ >= 4
-#define DLL_PUBLIC __attribute__ ((visibility ("default")))
-#define DLL_LOCAL  __attribute__ ((visibility ("hidden")))
-#else
-#define DLL_PUBLIC
-#define DLL_LOCAL
-#endif
-
-#endif
+#include "libicd_export.h"
+#define DLL_PUBLIC LIBICD_EXPORT
+#define DLL_LOCAL LIBICD_NO_EXPORT
 
 #if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #define IS_BIGENDIAN
