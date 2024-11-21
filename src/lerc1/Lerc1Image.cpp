@@ -345,7 +345,7 @@ Lerc1Image::computeNumBytesNeededToWrite(double maxZError, bool onlyZPart,
 // if you change the file format, don't forget to update not only write and
 // read functions, and the file version number, but also the computeNumBytes...
 // and numBytes... functions
-bool Lerc1Image::write(Byte **ppByte, double maxZError, bool zPart) const
+bool Lerc1Image::write(Byte **ppByte, double maxZError) const
 {
 // Local macro, write an unaligned variable, adjust pointer
 #define WRVAR(VAR, PTR)                                                        \
@@ -365,6 +365,7 @@ bool Lerc1Image::write(Byte **ppByte, double maxZError, bool zPart) const
     WRVAR(height, *ppByte);
     WRVAR(width, *ppByte);
     WRVAR(maxZError, *ppByte);
+    bool zPart(false);
 
     InfoFromComputeNumBytes info;
     if (0 == computeNumBytesNeededToWrite(maxZError, zPart, &info))
@@ -421,8 +422,7 @@ bool Lerc1Image::write(Byte **ppByte, double maxZError, bool zPart) const
 // To avoid excessive memory allocation attempts, this is still 1.8GB!!
 static size_t TOO_LARGE = 1800 * 1000 * 1000 / static_cast<int>(sizeof(float));
 
-bool Lerc1Image::read(Byte **ppByte, size_t &nRemainingBytes, double maxZError,
-                      bool ZPart)
+bool Lerc1Image::read(Byte **ppByte, size_t &nRemainingBytes, double maxZError)
 {
 // Local macro, read an unaligned variable, adjust pointer
 #define RDVAR(PTR, VAR)                                                        \
@@ -460,16 +460,9 @@ bool Lerc1Image::read(Byte **ppByte, size_t &nRemainingBytes, double maxZError,
     if (static_cast<size_t>(width) * height > TOO_LARGE)
         return false;
 
-    if (ZPart)
-    {
-        if (width != getWidth() || height != getHeight())
-            return false;
-    }
-    else
-    {  // Resize clears the buffer
-        resize(width, height);
-    }
-
+    // Resize clears the buffer
+    resize(width, height);
+    bool ZPart(false);
     do
     {
         int numTilesVert = 0, numTilesHori = 0, numBytes = 0;

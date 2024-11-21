@@ -250,7 +250,12 @@ DLL_PUBLIC const char* png_stride_decode(codec_params& params, storage_manager& 
 DLL_PUBLIC const char* png_encode(png_params& params, storage_manager& src, storage_manager& dst);
 
 // In LERC_codec.cpp
+// LERC1 is the only supported version, reads and writes a single band
+// Internally it gets converted to float, it can be read back as any other type
+
+// lerc_peek teturns data type as float by default, override params.raster.dt if needed
 DLL_PUBLIC const char* lerc_peek(const storage_manager& src, Raster& raster);
+// Remember to set the params.raster.dt to the desired output type
 DLL_PUBLIC const char* lerc_stride_decode(codec_params& params, storage_manager& src, void* buffer);
 DLL_PUBLIC const char* lerc_encode(lerc_params& params, storage_manager& src, storage_manager& dst);
 

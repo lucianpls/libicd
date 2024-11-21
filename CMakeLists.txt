@@ -18,6 +18,8 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(BUILD_SHARED_LIBS "Library style" On)
 
+option(BUILD_TESTING "Build tests" Off)
+
 set(namespace "AHTSE")
 
 set(JP12_SOURCES
@@ -132,7 +134,7 @@ target_include_directories(${PROJECT_NAME}
         # Where the library itself looks for internal headers
         ${JPEG_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS}
     PUBLIC
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE ${JPEG_LIBRARIES} ${PNG_LIBRARIES} QB3::libQB3)
@@ -145,7 +147,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     DEBUG_POSTFIX "d"
     PREFIX ""
 )
-
 
 include(GNUInstallDirs)
 
@@ -185,3 +186,14 @@ export(EXPORT "${PROJECT_NAME}Targets"
     FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Targets.cmake"
     NAMESPACE ${namespace}::
 )
+
+if (BUILD_TESTING)
+include(CTest)
+    add_executable(testicd testicd.cpp)
+    target_link_libraries(testicd PRIVATE libicd)
+
+    add_test(NAME testpng COMMAND testicd image/png)
+    add_test(NAME testjpeg COMMAND testicd image/jpeg)
+    add_test(NAME testlerc COMMAND testicd raster/lerc)
+
+endif ()

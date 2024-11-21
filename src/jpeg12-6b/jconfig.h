@@ -1,5 +1,8 @@
 /* jconfig.h. Linux version, modified for Windows too  */
 
+// AVOID warnings, slightly faster too
+#define AVOID_TABLES
+
 #if defined(_WIN32)
 
 /* jconfig.vc --- jconfig.h for Microsoft Visual C++ on Windows 95 or NT. */

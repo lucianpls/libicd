@@ -46,6 +46,9 @@ template<typename T> static void Lerc1ImgFill(Lerc1Image& zImg, T* src, const le
 }
 
 const char* lerc_encode(lerc_params& params, storage_manager& src, storage_manager& dst) {
+    if (params.raster.size.c != 1)
+        return "Lerc1 multi-band is not supported";
+
     Lerc1Image zImg;
 
     switch (params.raster.dt) {
@@ -99,6 +102,7 @@ const char* lerc_peek(const storage_manager& src, Raster& raster)
         return ERR_LERC;
     raster.size.x = w;
     raster.size.y = h;
+    raster.size.c = 1; // always 1 band
 
     // Read the LERC_PREC double
     READP(raster.res, s);
@@ -137,7 +141,7 @@ const char* lerc_peek(const storage_manager& src, Raster& raster)
     if (static_cast<size_t>(minlerc - 1) + msz + dsz > src.size)
         return ERR_SMALL;
 
-    raster.dt = ICDT_Unknown; // LERC1 can be read as anything
+    raster.dt = ICDT_Float; // LERC1 can be read as anything
     raster.format = IMG_LERC;
     return nullptr;
 }
