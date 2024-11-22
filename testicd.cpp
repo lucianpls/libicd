@@ -1,5 +1,6 @@
 #include "src/icd_codecs.h"
 #include <iostream>
+#include <vector>
 
 using namespace ICD;
 using namespace std;
@@ -18,17 +19,15 @@ int testPNG() {
         return 1;
     }
     // Create an input buffer
-    storage_manager src;
-    src.size = p.get_buffer_size();
-    src.buffer = malloc(src.size);
+    vector<uint8_t> vsrc(p.get_buffer_size());
+    storage_manager src(vsrc.data(), vsrc.size());
     // Fill in with bytes, some pattern that we can tell
     for (size_t i = 0; i < src.size; i++) {
         ((uint8_t*)src.buffer)[i] = i % 256;
     }
     // Create an output buffer
-    storage_manager dst;
-    dst.size = p.get_buffer_size() * 2; // Assume some expansion is possible
-    dst.buffer = malloc(dst.size);
+    std::vector<uint8_t> vdst(p.get_buffer_size() * 2);
+    storage_manager dst(vdst.data(), vdst.size());
 
     // Compress it
     auto message = png_encode(p, src, dst);
@@ -62,9 +61,8 @@ int testPNG() {
     // Create parameters for the decoder
     codec_params p2(in_raster);
     // Create an output buffer
-    storage_manager dst2 = {};
-    dst2.size = p2.get_buffer_size();
-    dst2.buffer = malloc(dst2.size);
+    vector<uint8_t> vdst2(p2.get_buffer_size());
+    storage_manager dst2(vdst2.data(), vdst2.size());
     message = stride_decode(p2, dst, dst2.buffer);
     if (message != nullptr) {
         std::cerr << "Error decompressing PNG " <<
@@ -97,17 +95,15 @@ int testJPEG() {
         return 1;
     }
     // Create an input buffer
-    storage_manager src;
-    src.size = p.get_buffer_size();
-    src.buffer = malloc(src.size);
+    vector<uint8_t> vsrc(p.get_buffer_size());
+    storage_manager src(vsrc.data(), vsrc.size());
     // Fill in with bytes, some pattern that we can tell
     for (size_t i = 0; i < src.size; i++) {
         ((uint8_t*)src.buffer)[i] = i % 256;
     }
     // Create an output buffer
-    storage_manager dst;
-    dst.size = p.get_buffer_size() * 2; // Assume some expansion is possible
-    dst.buffer = malloc(dst.size);
+    std::vector<uint8_t> vdst(p.get_buffer_size() * 2);
+    storage_manager dst(vdst.data(), vdst.size());
 
     // Compress it
     auto message = jpeg_encode(p, src, dst);
@@ -141,9 +137,8 @@ int testJPEG() {
     // Create parameters for the decoder
     codec_params p2(in_raster);
     // Create an output buffer
-    storage_manager dst2 = {};
-    dst2.size = p2.get_buffer_size();
-    dst2.buffer = malloc(dst2.size);
+    vector<uint8_t> vdst2(p2.get_buffer_size());
+    storage_manager dst2(vdst2.data(), vdst2.size());
     message = stride_decode(p2, dst, dst2.buffer);
     if (message != nullptr) {
         std::cerr << "Error decompressing JPEG " <<
@@ -194,17 +189,15 @@ int testLERC() {
         return 1;
     }
     // Create an input buffer
-    storage_manager src;
-    src.size = p.get_buffer_size();
-    src.buffer = malloc(src.size);
+    vector<uint8_t> vsrc(p.get_buffer_size());
+    storage_manager src(vsrc.data(), vsrc.size());
     // Fill in with bytes, some pattern that we can tell
     for (size_t i = 0; i < src.size; i++) {
         ((uint8_t*)src.buffer)[i] = i % 256;
     }
     // Create an output buffer
-    storage_manager dst;
-    dst.size = p.get_buffer_size() * 2; // Assume some expansion is possible
-    dst.buffer = malloc(dst.size);
+    std::vector<uint8_t> vdst(p.get_buffer_size() * 2);
+    storage_manager dst(vdst.data(), vdst.size());
 
     // Compress it
     auto message = lerc_encode(p, src, dst);
@@ -247,9 +240,9 @@ int testLERC() {
     // Create parameters for the decoder
     codec_params p2(in_raster);
     // Create an output buffer
-    storage_manager dst2 = {};
-    dst2.size = p2.get_buffer_size();
-    dst2.buffer = malloc(dst2.size);
+    vector<uint8_t> vdst2(p2.get_buffer_size());
+    storage_manager dst2(vdst2.data(), vdst2.size());
+
     message = stride_decode(p2, dst, dst2.buffer);
     if (message != nullptr) {
         std::cerr << "Error decompressing " <<

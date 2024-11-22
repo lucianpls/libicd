@@ -110,6 +110,8 @@ find_package(JPEG REQUIRED)
 find_package(PNG REQUIRED)
 find_package(libQB3) # libQB3_INCLUDE_DIRS libQB3_LIBRARIES
 
+add_library(${PROJECT_NAME})
+
 if (${libQB3_FOUND})
     add_compile_definitions(LIBQB3_FOUND)
     list(APPEND ICD_SOURCES QB3_codec.cpp)
@@ -121,7 +123,6 @@ list(APPEND ICD_SOURCES ${JP12_SOURCES})
 list(TRANSFORM ICD_HEADERS PREPEND src/)
 list(APPEND ICD_HEADERS ${JP12_HEADERS})
 
-add_library(${PROJECT_NAME})
 if (MSVC)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
     target_link_options(${PROJECT_NAME} PUBLIC "/NODEFAULTLIB:LIBCMT")
@@ -131,12 +132,12 @@ target_sources(${PROJECT_NAME} PRIVATE ${ICD_SOURCES} ${ICD_HEADERS})
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE
-        # Where the library itself looks for internal headers
-        ${JPEG_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS}
+        ${JPEG_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS} ${libQB3_INCLUDE_DIRS}
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+
 target_link_libraries(${PROJECT_NAME} PRIVATE ${JPEG_LIBRARIES} ${PNG_LIBRARIES} QB3::libQB3)
 
 include(GenerateExportHeader)
