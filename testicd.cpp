@@ -260,9 +260,14 @@ int testLERC() {
     return 0;
 }
 
-#if defined(LIBQB3_FOUND)
 // Write and read a QB3 raster
 int testQB3() {
+    
+    if (!has_qb3()) {
+        std::cerr << "QB3 codec not available" << std::endl;
+        return 1;
+    }
+
     Raster r = {};
     // x, y, z, c, l
     r.size = { 100, 100, 0, 3, 0 };
@@ -329,7 +334,6 @@ int testQB3() {
 
     return 0;
 }
-#endif
 
 int main(int argc, char** argv) {
     // Takes one argument, the image format mime type

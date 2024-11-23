@@ -13,8 +13,10 @@ static const char ERR_SMALL[] = "Input buffer too small";
 static const char ERR_OUT_SMALL[] = "Output buffer too small";
 static const char ERR_DIFFERENT[] = "Unexpected type of QB3";
 
+bool has_qb3() { return true; };
+
 // Convert from qb3_dtype to ICDDataType
-ICDDataType qb3type_to_icdtype(qb3_dtype dt)
+static ICDDataType qb3type_to_icdtype(qb3_dtype dt)
 {
     switch (dt) {
     case QB3_U8: return ICDT_Byte;
@@ -29,7 +31,7 @@ ICDDataType qb3type_to_icdtype(qb3_dtype dt)
     }
 }
 // Reverse, from ICDDataType to qb3_dtype
-qb3_dtype icdtype_to_qb3type(ICDDataType dt)
+static qb3_dtype icdtype_to_qb3type(ICDDataType dt)
 {
     switch (dt) {
     case ICDT_UInt16: return QB3_U16;
@@ -58,6 +60,7 @@ const char* peek_qb3(const storage_manager& src, Raster& raster)
     raster.size.x = size[0];
     raster.size.y = size[1];
     raster.size.c = size[2];
+
     // Call qb3_read_info to get the data type
     if (!qb3_read_info(p)) {
         qb3_destroy_decoder(p);
@@ -65,18 +68,6 @@ const char* peek_qb3(const storage_manager& src, Raster& raster)
     }
     // Get the data type
     raster.dt = qb3type_to_icdtype(qb3_get_type(p));
-
-    //// Could check a few more things, data type ...
-    //if (qb3_decoded_size(p) != getTypeSize(raster.dt, size[0] * size[1] * size[2])) {
-    //    qb3_destroy_decoder(p);
-    //    return ERR_DIFFERENT;
-    //}
-
-    //// Looks reasonable, try the read_info to see if we can actually decode it
-    //if (!qb3_read_info(p)) {
-    //	qb3_destroy_decoder(p);
-    //	return ERR_QB3;
-    //}
 
     qb3_destroy_decoder(p);
     return nullptr;

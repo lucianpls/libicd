@@ -124,11 +124,7 @@ typedef enum {
 // IMG_ANY is the default, but no checks can be done at config time
 // On input, it decodes to byte, on output it is equivalent to IMG_JPEG
 // JPEG is always JPEG_ZEN
-enum IMG_T { IMG_ANY = 0, IMG_JPEG, IMG_PNG, IMG_LERC, 
-#ifdef LIBQB3_FOUND
-    IMG_QB3,
-#endif
-    IMG_UNKNOWN };
+enum IMG_T { IMG_ANY = 0, IMG_JPEG, IMG_PNG, IMG_LERC, IMG_QB3, IMG_UNKNOWN };
 
 // names for the formats
 // "image/*", "image/jpeg", "image/png",
@@ -231,6 +227,10 @@ struct lerc_params : codec_params {
     double prec; // half of quantization step
 };
 
+struct qb3_params : codec_params {
+    qb3_params(const Raster& r) : codec_params(r) {}
+};
+
 // Generic image decode dispatcher, parameters should be already set to what is expected
 // Returns error message or null.
 DLL_PUBLIC const char* image_peek(const storage_manager& src, Raster& raster);
@@ -269,17 +269,12 @@ DLL_PUBLIC const char* lerc_peek(const storage_manager& src, Raster& raster);
 DLL_PUBLIC const char* lerc_stride_decode(codec_params& params, storage_manager& src, void* buffer);
 DLL_PUBLIC const char* lerc_encode(lerc_params& params, storage_manager& src, storage_manager& dst);
 
-#ifdef LIBQB3_FOUND
-
-struct qb3_params : codec_params {
-    qb3_params(const Raster& r) : codec_params(r) {}
-};
-
 // In QB3_codec.cpp
+DLL_PUBLIC bool has_qb3();
+// These functions return an error message if has_qb3() is false
 DLL_PUBLIC const char* peek_qb3(const storage_manager& src, Raster& raster);
 DLL_PUBLIC const char* stride_decode_qb3(codec_params& params, storage_manager& src, void* buffer);
 DLL_PUBLIC const char* encode_qb3(qb3_params& params, storage_manager& src, storage_manager& dst);
-#endif
 
 NS_END
 #endif

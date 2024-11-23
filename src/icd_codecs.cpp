@@ -82,12 +82,8 @@ const char* stride_decode(codec_params& params, storage_manager& src, void* buff
         error_message = lerc_stride_decode(params, src, buffer);
         break;
     case QB3_SIG:
-#if defined(LIBQB3_FOUND)
         params.raster.format = IMG_QB3;
         error_message = stride_decode_qb3(params, src, buffer);
-#else
-        error_message = "QB3 format not supported";
-#endif // 
         break;
     default:
         error_message = "Decode requested for unknown format";
@@ -110,9 +106,7 @@ const char* image_peek(const storage_manager& src, Raster& raster) {
     case LERC_SIG:
         return lerc_peek(src, raster);
     case QB3_SIG:
-#if defined(LIBQB3_FOUND)
         return peek_qb3(src, raster);
-#endif
     default:
         return "Unknown format";
     }
@@ -121,5 +115,26 @@ const char* image_peek(const storage_manager& src, Raster& raster) {
 const char* Raster::init(const storage_manager& src) {
     return image_peek(src, *this);
 }
+
+#if !defined(LIBQB3_FOUND)
+
+static const char* QB3_MISSING = "QB3 codec not available";
+bool has_qb3() {
+    return false;
+}
+
+const char* peek_qb3(const storage_manager& src, Raster& raster) {
+    return QB3_MISSING;
+}
+
+const char* stride_decode_qb3(codec_params& params, storage_manager& src, void* buffer) {
+    return QB3_MISSING;
+}
+
+const char* encode_qb3(qb3_params& params, storage_manager& src, storage_manager& dst) {
+    return QB3_MISSING;
+}
+
+#endif
 
 NS_END
