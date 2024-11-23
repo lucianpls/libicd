@@ -110,7 +110,9 @@ const char* image_peek(const storage_manager& src, Raster& raster) {
     case LERC_SIG:
         return lerc_peek(src, raster);
     case QB3_SIG:
+#if defined(LIBQB3_FOUND)
         return peek_qb3(src, raster);
+#endif
     default:
         return "Unknown format";
     }
