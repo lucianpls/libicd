@@ -19,6 +19,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(BUILD_SHARED_LIBS "Library style" On)
 
 option(BUILD_TESTING "Build tests" Off)
+option(USE_QB3 "Use libQB3" Off)
 
 set(namespace "AHTSE")
 
@@ -108,13 +109,16 @@ set(ICD_HEADERS
 
 find_package(JPEG REQUIRED)
 find_package(PNG REQUIRED)
-find_package(libQB3) # libQB3_INCLUDE_DIRS libQB3_LIBRARIES
+if (USE_QB3)
+    find_package(libQB3) # libQB3_INCLUDE_DIRS libQB3_LIBRARIES
+endif ()
 
 add_library(${PROJECT_NAME})
 
 if (${libQB3_FOUND})
     add_compile_definitions(LIBQB3_FOUND)
     list(APPEND ICD_SOURCES QB3_codec.cpp)
+    target_link_libraries(${PROJECT_NAME} PRIVATE QB3::libQB3)
 endif ()
 
 list(TRANSFORM ICD_SOURCES PREPEND src/)
@@ -138,7 +142,7 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE ${JPEG_LIBRARIES} ${PNG_LIBRARIES} QB3::libQB3)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${JPEG_LIBRARIES} ${PNG_LIBRARIES})
 
 include(GenerateExportHeader)
 generate_export_header(${PROJECT_NAME})
@@ -196,5 +200,9 @@ include(CTest)
     add_test(NAME testpng COMMAND testicd image/png)
     add_test(NAME testjpeg COMMAND testicd image/jpeg)
     add_test(NAME testlerc COMMAND testicd raster/lerc)
+
+if (USE_QB3)
+    add_test(NAME testqb3 COMMAND testicd image/qb3)
+endif()
 
 endif ()

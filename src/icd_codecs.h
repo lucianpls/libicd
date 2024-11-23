@@ -92,7 +92,7 @@
 #define JPEG_SIG 0xe0ffd8ff
 #define JPEG1_SIG 0xe1ffd8ff
 #define LERC_SIG 0x5a746e43
-#define QB3_SIG 0x51423380
+#define QB3_SIG 0x80334251
 
 // This one is not an image type, but an encoding
 #define GZIP_SIG 0x00088b1f
@@ -124,8 +124,18 @@ typedef enum {
 // IMG_ANY is the default, but no checks can be done at config time
 // On input, it decodes to byte, on output it is equivalent to IMG_JPEG
 // JPEG is always JPEG_ZEN
-enum IMG_T { IMG_ANY = 0, IMG_JPEG, IMG_PNG, IMG_LERC, IMG_UNKNOWN };
+enum IMG_T { IMG_ANY = 0, IMG_JPEG, IMG_PNG, IMG_LERC, 
+#ifdef LIBQB3_FOUND
+    IMG_QB3,
+#endif
+    IMG_UNKNOWN };
 
+// names for the formats
+// "image/*", "image/jpeg", "image/png",
+// "raster/lerc", "image/qb3", ""
+DLL_PUBLIC extern const char* IMG_NAMES[];
+
+// Given a format name, returns a format type
 DLL_PUBLIC IMG_T getFMT(const char *name);
 
 // Size in bytes
@@ -260,10 +270,15 @@ DLL_PUBLIC const char* lerc_stride_decode(codec_params& params, storage_manager&
 DLL_PUBLIC const char* lerc_encode(lerc_params& params, storage_manager& src, storage_manager& dst);
 
 #ifdef LIBQB3_FOUND
+
+struct qb3_params : codec_params {
+    qb3_params(const Raster& r) : codec_params(r) {}
+};
+
 // In QB3_codec.cpp
 DLL_PUBLIC const char* peek_qb3(const storage_manager& src, Raster& raster);
 DLL_PUBLIC const char* stride_decode_qb3(codec_params& params, storage_manager& src, void* buffer);
-DLL_PUBLIC const char* encode_qb3(lerc_params& params, storage_manager& src, storage_manager& dst);
+DLL_PUBLIC const char* encode_qb3(qb3_params& params, storage_manager& src, storage_manager& dst);
 #endif
 
 NS_END

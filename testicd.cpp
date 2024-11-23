@@ -260,6 +260,77 @@ int testLERC() {
     return 0;
 }
 
+#if defined(LIBQB3_FOUND)
+// Write and read a QB3 raster
+int testQB3() {
+    Raster r = {};
+    // x, y, z, c, l
+    r.size = { 100, 100, 0, 3, 0 };
+    r.dt = ICDT_Byte;
+    // Build a QB3 codec
+    qb3_params p(r);
+    if (string(p.error_message) != "") {
+        std::cerr << "Error creating QB3 parameters " <<
+            p.error_message << std::endl;
+        return 1;
+    }
+
+    // Create an input buffer
+    vector<uint8_t> vsrc(p.get_buffer_size());
+    storage_manager src(vsrc.data(), vsrc.size());
+    // Fill in with bytes, some pattern that we can tell
+    for (size_t i = 0; i < src.size; i++) {
+        ((uint8_t*)src.buffer)[i] = i % 256;
+    }
+    // Create an output buffer
+    std::vector<uint8_t> vdst(p.get_buffer_size() * 2);
+    storage_manager dst(vdst.data(), vdst.size());
+
+    // Compress it
+    auto message = encode_qb3(p, src, dst);
+    if (message != nullptr) {
+        std::cerr << "Error compressing: " <<
+            message << std::endl;
+        return 1;
+    }
+
+    // Announce the size
+    std::cout << "Compressed size: " << dst.size << std::endl;
+
+    // Create a new raster
+    Raster in_raster = {};
+    in_raster.init(dst);
+    // Should be the same size
+    if (in_raster.size != r.size) {
+        std::cerr << "Size mismatch on unpack, " <<
+            in_raster.size.x << " " << in_raster.size.y << " " <<
+            in_raster.size.z << " " << in_raster.size.c << " " <<
+            in_raster.size.l << std::endl;
+        // And the original
+        std::cerr << "Expected " <<
+            r.size.x << " " << r.size.y << " " <<
+            r.size.z << " " << r.size.c << " " <<
+            r.size.l << std::endl;
+        return 1;
+    }
+
+    // Decompress it
+    // Create parameters for the decoder
+    codec_params p2(in_raster);
+    // Create an output buffer
+    vector<uint8_t> vdst2(p2.get_buffer_size());
+    storage_manager dst2(vdst2.data(), vdst2.size());
+    message = stride_decode(p2, dst, dst2.buffer);
+    if (message != nullptr) {
+        std::cerr << "Error decompressing " <<
+            message << std::endl;
+        return 1;
+    }
+
+    return 0;
+}
+#endif
+
 int main(int argc, char** argv) {
     // Takes one argument, the image format mime type
     if (argc == 2) {
@@ -273,6 +344,11 @@ int main(int argc, char** argv) {
         else if (fmt == IMG_LERC) {
             return testLERC();
         }
+#if defined(LIBQB3_FOUND)
+        else if (fmt == IMG_QB3) {
+            return testQB3();
+        }
+#endif
         else {
             std::cerr << "Unsupported format " << argv[1] << std::endl;
             std::cerr << "image/jpeg, image/png, raster/lerc" << std::endl; 

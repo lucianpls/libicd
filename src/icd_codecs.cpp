@@ -49,17 +49,16 @@ size_t getTypeSize(ICDDataType dt, size_t n) {
     }
 }
 
-IMG_T getFMT(const char *name) {
-    std::string s(name);
-    if (s == "image/jpeg")
-        return IMG_JPEG;
-    if (s == "image/png")
-        return IMG_PNG;
-    if (s == "raster/lerc")
-        return IMG_LERC;
+const char* IMG_NAMES[] = { "image/*", "image/jpeg", "image/png",
+    "raster/lerc", "image/qb3", "" };
+
+// Given a format name, returns a format type
+IMG_T getFMT(const char* name) {
+    for (IMG_T i = IMG_ANY; i < IMG_UNKNOWN; i = static_cast<IMG_T>(i + 1))
+        if (strcmp(name, IMG_NAMES[i]) == 0)
+            return i;
     return IMG_UNKNOWN;
 }
-
 
 const char* stride_decode(codec_params& params, storage_manager& src, void* buffer)
 {
@@ -82,6 +81,14 @@ const char* stride_decode(codec_params& params, storage_manager& src, void* buff
         params.raster.format = IMG_LERC;
         error_message = lerc_stride_decode(params, src, buffer);
         break;
+    case QB3_SIG:
+#if defined(LIBQB3_FOUND)
+        params.raster.format = IMG_QB3;
+        error_message = stride_decode_qb3(params, src, buffer);
+#else
+        error_message = "QB3 format not supported";
+#endif // 
+        break;
     default:
         error_message = "Decode requested for unknown format";
     }
@@ -102,8 +109,11 @@ const char* image_peek(const storage_manager& src, Raster& raster) {
         return png_peek(src, raster);
     case LERC_SIG:
         return lerc_peek(src, raster);
+    case QB3_SIG:
+        return peek_qb3(src, raster);
+    default:
+        return "Unknown format";
     }
-    return "Unknown format";
 }
 
 const char* Raster::init(const storage_manager& src) {
