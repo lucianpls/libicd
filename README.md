@@ -9,7 +9,7 @@ Provides a standard API to multiple raster codecs
 - QB3   : Optional, use -DUSE_QB3=ON as an argument to cmake
 
 # Building notes
-- QB3 utilities depend on libicd, but libQB3 itself does not. To fully build the QB3 utilities:
+- QB3 utilities depend on libicd, but libQB3 itself does not. To build libicd with QB3 support, follow these steps:
   -  Build and install libQB3 by itself first (the default)
   -  Build and install libicd with -DUSE_QB3=ON
   -  Reconfigure, rebuild and install QB3 with -DBUILD_CQB3=ON
