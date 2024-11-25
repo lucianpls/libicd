@@ -1,12 +1,12 @@
 # libicd
 image codec library
 
-Provides a standard API to multiple raster codecs
+Provides a uniform API to multiple raster codecs. It supports the following raster formats:
 
-- JPEG  : Uses system provided jpeg 8 library, include jpeg 12bit. Also includes Zen extension (zero mask) support
+- JPEG  : libicd includes jpeg 12bit sources, and uses system provided jpeg 8 library, which usually is libjpeg-turbo. Libicd also includes support for Zen extension (zero mask)
 - PNG   : Uses system provided PNG
 - LERC1 : Rewrite of LERC1 for floating point rasters and mask
-- QB3   : Optional, use -DUSE_QB3=ON as an argument to cmake
+- QB3   : Integer lossless compression, optional, use -DUSE_QB3=ON as an argument to cmake
 
 # Building notes
 - QB3 utilities depend on libicd, but libQB3 itself does not. To build libicd with QB3 support and the QB3 command line utility, follow these steps:
