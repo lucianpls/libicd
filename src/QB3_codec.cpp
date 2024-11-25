@@ -135,6 +135,16 @@ const char* encode_qb3(qb3_params& params, storage_manager& src, storage_manager
     if (!encoder)
         return "Can't create QB3 encoder";
     
+    // Check that the mode is valid
+    qb3_mode mode = qb3_mode(params.mode);
+    // Negative modes or too large are invalid
+    if (mode > QB3M_END || mode < qb3_mode(0)) {
+        // Set the default mode
+        mode = QB3M_BASE;
+        params.mode = mode;
+    }
+    qb3_set_encoder_mode(encoder, mode);
+    
     // Check that the output buffer is large enough
     size_t max_size = qb3_max_encoded_size(encoder);
     if (dst.size < max_size) {

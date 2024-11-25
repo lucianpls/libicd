@@ -228,7 +228,8 @@ struct lerc_params : codec_params {
 };
 
 struct qb3_params : codec_params {
-    qb3_params(const Raster& r) : codec_params(r) {}
+    qb3_params(const Raster& r) : codec_params(r), mode(-1) {}
+    int mode;
 };
 
 // Generic image decode dispatcher, parameters should be already set to what is expected

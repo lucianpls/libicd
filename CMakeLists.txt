@@ -9,7 +9,7 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 project(libicd
     DESCRIPTION "AHTSE Image Codec Library"
-    VERSION 0.9.1
+    VERSION 1.0.0
     LANGUAGES CXX C
 )
 
