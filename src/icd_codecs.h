@@ -117,8 +117,10 @@ typedef enum {
     ICDT_Float32 = 6,    // Thirty two bit floating point
     ICDT_Float = 6,
     ICDT_Float64 = 7,    // Sixty four bit floating point
-    ICDT_Double = 7
-    //    ICDT_TypeCount = 8   // Not a type
+    ICDT_Double = 7,
+    // From gdal, added after complex numbers
+    ICDT_UInt64 = 12,      // Sixty four bit unsigned integer
+    ICDT_Int64 = 13,       // Sixty four bit signed integer
 } ICDDataType;
 
 // IMG_ANY is the default, but no checks can be done at config time

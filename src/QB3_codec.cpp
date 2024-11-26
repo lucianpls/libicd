@@ -25,8 +25,8 @@ static ICDDataType qb3type_to_icdtype(qb3_dtype dt)
     case QB3_I16: return ICDT_Int16;
     case QB3_U32: return ICDT_UInt32;
     case QB3_I32: return ICDT_Int32;
-    //case QB3_U64: return ICDT_UInt64;
-    //case QB3_I64: return ICDT_Int64;
+    case QB3_U64: return ICDT_UInt64;
+    case QB3_I64: return ICDT_Int64;
     default: return ICDT_Unknown;
     }
 }
@@ -40,8 +40,8 @@ static qb3_dtype icdtype_to_qb3type(ICDDataType dt)
     case ICDT_Int32: return QB3_I32;
         //    case ICDT_Byte: return QB3_U8;
         //    case ICDT_Char: return QB3_I8; // Signed missmatch between ICD and QB3
-                //case ICDT_UInt64: return QB3_U64;
-        //case ICDT_Int64: return QB3_I64;
+    case ICDT_UInt64: return QB3_U64;
+    case ICDT_Int64: return QB3_I64;
     default: return QB3_U8;
     }
 }
