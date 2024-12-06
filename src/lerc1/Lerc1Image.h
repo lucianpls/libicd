@@ -37,9 +37,7 @@ typedef unsigned char Byte;
 
 /** BitMaskV1 - Convenient and fast access to binary mask bits
  * includes RLE compression and decompression
- *
  */
-
 class BitMaskV1
 {
   public:
@@ -101,14 +99,19 @@ class BitMaskV1
     }
 };
 
-template <typename T> class TImage
+class Lerc1Image
 {
   public:
-    TImage() : width_(0), height_(0)
+    /// binary file IO with optional compression
+    /// (maxZError = 0  means no lossy compression for Z; the mask part is
+    /// compressed lossless or not at all) read succeeds only if maxZError on
+    /// file <= maxZError requested (!)
+
+    Lerc1Image() : width_(0), height_(0)
     {
     }
 
-    ~TImage()
+    ~Lerc1Image()
     {
     }
 
@@ -135,89 +138,19 @@ template <typename T> class TImage
         return width_ * height_;
     }
 
-    const T &operator()(int row, int col) const
+    const float& operator()(int row, int col) const
     {
         return values[row * width_ + col];
     }
 
-    T &operator()(int row, int col)
+    float& operator()(int row, int col)
     {
         return values[row * width_ + col];
     }
 
-    const T *data() const
+    const float* data() const
     {
         return values.data();
-    }
-
-  private:
-    int width_, height_;
-    std::vector<T> values;
-};
-
-class Lerc1Image : public TImage<float>
-{
-  protected:
-    struct InfoFromComputeNumBytes
-    {
-        double maxZError;
-        int numTilesVertCnt;
-        int numTilesHoriCnt;
-        int numBytesCnt;
-        float maxCntInImg;
-        int numTilesVertZ;
-        int numTilesHoriZ;
-        int numBytesZ;
-        float maxZInImg;
-
-        InfoFromComputeNumBytes()
-        {
-            std::memset(this, 0, sizeof(*this));
-        }
-    };
-
-    bool findTiling(double maxZError, int &numTilesVert, int &numTilesHori,
-                    int &numBytesOpt, float &maxValInImg) const;
-
-    bool writeTiles(double maxZError, int numTilesVert, int numTilesHori,
-                    Byte *bArr, int &numBytes, float &maxValInImg) const;
-
-    bool readTiles(double maxZErrorInFile, int numTilesVert, int numTilesHori,
-                   float maxValInImg, Byte *bArr, size_t nRemainingBytes);
-
-    bool computeZStats(int r0, int r1, int c0, int c1, float &zMin, float &zMax,
-                       int &numValidPixel, int &numFinite) const;
-
-    // returns true if all floating point values in the region have the same
-    // binary representation
-    bool isallsameval(int r0, int r1, int c0, int c1) const;
-
-    bool writeZTile(Byte **ppByte, int &numBytes, int r0, int r1, int c0,
-                    int c1, int numValidPixel, float zMin, float zMax,
-                    double maxZError) const;
-
-    bool readZTile(Byte **ppByte, size_t &nRemainingBytes, int r0, int r1,
-                   int c0, int c1, double maxZErrorInFile, float maxZInImg);
-
-    unsigned int
-    computeNumBytesNeededToWrite(double maxZError, bool onlyZPart,
-                                 InfoFromComputeNumBytes *info) const;
-
-    std::vector<unsigned int> idataVec;  // temporary buffer
-    BitMaskV1 mask;
-
-  public:
-    /// binary file IO with optional compression
-    /// (maxZError = 0  means no lossy compression for Z; the mask part is
-    /// compressed lossless or not at all) read succeeds only if maxZError on
-    /// file <= maxZError requested (!)
-
-    Lerc1Image()
-    {
-    }
-
-    ~Lerc1Image()
-    {
     }
 
     static unsigned int computeNumBytesNeededToWriteVoidImage();
@@ -241,11 +174,61 @@ class Lerc1Image : public TImage<float>
         mask.Set(row * getWidth() + col, v);
     }
 
-    // Read and write into a memory buffer
-    bool write(Byte **ppByte, double maxZError = 0,
-               bool onlyZPart = false) const;
-    bool read(Byte **ppByte, size_t &nRemainingBytes, double maxZError,
-              bool onlyZPart = false);
+    // Read and write LERC1 into a memory buffer, controlled by maxZError
+    bool write(Byte **ppByte, double maxZError = 0) const;
+
+    bool read(Byte **ppByte, size_t &nRemainingBytes, double maxZError);
+
+private:
+    struct InfoFromComputeNumBytes
+    {
+        double maxZError;
+        int numTilesVertCnt;
+        int numTilesHoriCnt;
+        int numBytesCnt;
+        float maxCntInImg;
+        int numTilesVertZ;
+        int numTilesHoriZ;
+        int numBytesZ;
+        float maxZInImg;
+
+        InfoFromComputeNumBytes()
+        {
+            std::memset(this, 0, sizeof(*this));
+        }
+    };
+
+    bool findTiling(double maxZError, int& numTilesVert, int& numTilesHori,
+        int& numBytesOpt, float& maxValInImg) const;
+
+    bool writeTiles(double maxZError, int numTilesVert, int numTilesHori,
+        Byte* bArr, int& numBytes, float& maxValInImg) const;
+
+    bool readTiles(double maxZErrorInFile, int numTilesVert, int numTilesHori,
+        float maxValInImg, Byte* bArr, size_t nRemainingBytes);
+
+    bool computeZStats(int r0, int r1, int c0, int c1, float& zMin, float& zMax,
+        int& numValidPixel, int& numFinite) const;
+
+    // returns true if all floating point values in the region have the same
+    // binary representation
+    bool isallsameval(int r0, int r1, int c0, int c1) const;
+
+    bool writeZTile(Byte** ppByte, int& numBytes, int r0, int r1, int c0,
+        int c1, int numValidPixel, float zMin, float zMax,
+        double maxZError) const;
+
+    bool readZTile(Byte** ppByte, size_t& nRemainingBytes, int r0, int r1,
+        int c0, int c1, double maxZErrorInFile, float maxZInImg);
+
+    unsigned int
+        computeNumBytesNeededToWrite(double maxZError, bool onlyZPart,
+            InfoFromComputeNumBytes* info) const;
+
+    int width_, height_;
+    std::vector<float> values;
+    std::vector<unsigned int> idataVec;  // temporary buffer
+    BitMaskV1 mask;
 };
 
 NAMESPACE_LERC1_END

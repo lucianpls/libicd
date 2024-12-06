@@ -9,7 +9,7 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 project(libicd
     DESCRIPTION "AHTSE Image Codec Library"
-    VERSION 0.9.1
+    VERSION 1.0.0
     LANGUAGES CXX C
 )
 
@@ -17,6 +17,9 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(BUILD_SHARED_LIBS "Library style" On)
+
+option(BUILD_TESTING "Build tests" Off)
+option(USE_QB3 "Use libQB3" Off)
 
 set(namespace "AHTSE")
 
@@ -96,9 +99,6 @@ set(ICD_SOURCES
     PNG_codec.cpp
     lerc1/Lerc1Image.cpp
 )
-list(TRANSFORM ICD_SOURCES PREPEND src/)
-list(APPEND ICD_SOURCES ${JP12_SOURCES})
-# message("${ICD_SOURCES}")
 
 set(ICD_HEADERS
     BitMask2D.h
@@ -106,35 +106,52 @@ set(ICD_HEADERS
     JPEG_codec.h
     lerc1/Lerc1Image.h
 )
-list(TRANSFORM ICD_HEADERS PREPEND src/)
-list(APPEND ICD_HEADERS ${JP12_HEADERS})
-# message("${ICD_HEADERS}")
 
 find_package(JPEG REQUIRED)
 find_package(PNG REQUIRED)
+if (USE_QB3)
+    find_package(libQB3) # libQB3_INCLUDE_DIRS libQB3_LIBRARIES
+endif ()
 
 add_library(${PROJECT_NAME})
+
+if (${libQB3_FOUND})
+    add_compile_definitions(LIBQB3_FOUND)
+    list(APPEND ICD_SOURCES QB3_codec.cpp)
+    target_link_libraries(${PROJECT_NAME} PRIVATE QB3::libQB3)
+endif ()
+
+list(TRANSFORM ICD_SOURCES PREPEND src/)
+list(APPEND ICD_SOURCES ${JP12_SOURCES})
+
+list(TRANSFORM ICD_HEADERS PREPEND src/)
+list(APPEND ICD_HEADERS ${JP12_HEADERS})
+
 if (MSVC)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
     target_link_options(${PROJECT_NAME} PUBLIC "/NODEFAULTLIB:LIBCMT")
 endif (MSVC)
 
 target_sources(${PROJECT_NAME} PRIVATE ${ICD_SOURCES} ${ICD_HEADERS})
-set_target_properties(${PROJECT_NAME} PROPERTIES 
-    PUBLIC_HEADER src/icd_codecs.h
-    DEBUG_POSTFIX "d"
-    PREFIX ""
-)
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE
-        # Where the library itself looks for internal headers
-        ${JPEG_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS}
+        ${JPEG_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS} ${libQB3_INCLUDE_DIRS}
     PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+
 target_link_libraries(${PROJECT_NAME} PRIVATE ${JPEG_LIBRARIES} ${PNG_LIBRARIES})
+
+include(GenerateExportHeader)
+generate_export_header(${PROJECT_NAME})
+
+set_target_properties(${PROJECT_NAME} PROPERTIES 
+    PUBLIC_HEADER "src/icd_codecs.h;${CMAKE_CURRENT_BINARY_DIR}/libicd_export.h"
+    DEBUG_POSTFIX "d"
+    PREFIX ""
+)
 
 include(GNUInstallDirs)
 
@@ -174,3 +191,18 @@ export(EXPORT "${PROJECT_NAME}Targets"
     FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Targets.cmake"
     NAMESPACE ${namespace}::
 )
+
+if (BUILD_TESTING)
+include(CTest)
+    add_executable(testicd testicd.cpp)
+    target_link_libraries(testicd PRIVATE libicd)
+
+    add_test(NAME testpng COMMAND testicd image/png)
+    add_test(NAME testjpeg COMMAND testicd image/jpeg)
+    add_test(NAME testlerc COMMAND testicd raster/lerc)
+
+if (USE_QB3)
+    add_test(NAME testqb3 COMMAND testicd image/qb3)
+endif()
+
+endif ()

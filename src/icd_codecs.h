@@ -13,58 +13,18 @@
 #if !defined(ICD_CODECS_H)
 #define ICD_CODECS_H
 
+#include <cstdint>
+#include <cstddef>
+
 #if !defined(NS_ICD_START)
 #define NS_ICD_START namespace ICD {
 #define NS_END }
 #define NS_ICD_USE using namespace ICD;
 #endif
 
-#include <cstdint>
-#include <cstddef>
-
-//
-// Define DLL_PUBLIC to make a symbol visible
-// Define DLL_LOCAL to hide a symbol
-// Default behavior is system depenent
-//
-
-#ifdef DLL_PUBLIC
-#undef DLL_PUBLIC
-#endif
-
-#ifdef DLL_LOCAL
-#undef DLL_LOCAL
-#endif
-
-#if defined _WIN32 || defined __CYGWIN__
-#define DLL_LOCAL
-
-#ifdef libicd_EXPORTS
-
-#ifdef __GNUC__
-#define DLL_PUBLIC __attribute__ ((dllexport))
-#else
-#define DLL_PUBLIC __declspec(dllexport)
-#endif
-#else
-#ifdef __GNUC__
-#define DLL_PUBLIC __attribute__ ((dllimport))
-#else
-#define DLL_PUBLIC __declspec(dllimport)
-#endif
-#endif
-
-#else
-// Not windows
-#if __GNUC__ >= 4
-#define DLL_PUBLIC __attribute__ ((visibility ("default")))
-#define DLL_LOCAL  __attribute__ ((visibility ("hidden")))
-#else
-#define DLL_PUBLIC
-#define DLL_LOCAL
-#endif
-
-#endif
+#include "libicd_export.h"
+#define DLL_PUBLIC LIBICD_EXPORT
+#define DLL_LOCAL LIBICD_NO_EXPORT
 
 #if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #define IS_BIGENDIAN
@@ -79,8 +39,9 @@
 // JPEG has two signatures
 #define JPEG1_SIG 0xffd8ffe1
 
-// Lerc is only supported on little endian
+// Lerc and QB3 are only supported on little endian
 #define LERC_SIG 0x436e745a
+#define QB3_SIG 0x80334251
 
 // This one is not an image type, but an encoding
 #define GZIP_SIG 0x1f8b0800
@@ -131,6 +92,7 @@
 #define JPEG_SIG 0xe0ffd8ff
 #define JPEG1_SIG 0xe1ffd8ff
 #define LERC_SIG 0x5a746e43
+#define QB3_SIG 0x80334251
 
 // This one is not an image type, but an encoding
 #define GZIP_SIG 0x00088b1f
@@ -155,15 +117,23 @@ typedef enum {
     ICDT_Float32 = 6,    // Thirty two bit floating point
     ICDT_Float = 6,
     ICDT_Float64 = 7,    // Sixty four bit floating point
-    ICDT_Double = 7
-    //    ICDT_TypeCount = 8   // Not a type
+    ICDT_Double = 7,
+    // From gdal, added after complex numbers
+    ICDT_UInt64 = 12,      // Sixty four bit unsigned integer
+    ICDT_Int64 = 13,       // Sixty four bit signed integer
 } ICDDataType;
 
 // IMG_ANY is the default, but no checks can be done at config time
 // On input, it decodes to byte, on output it is equivalent to IMG_JPEG
 // JPEG is always JPEG_ZEN
-enum IMG_T { IMG_ANY = 0, IMG_JPEG, IMG_PNG, IMG_LERC, IMG_UNKNOWN };
+enum IMG_T { IMG_ANY = 0, IMG_JPEG, IMG_PNG, IMG_LERC, IMG_QB3, IMG_UNKNOWN };
 
+// names for the formats
+// "image/*", "image/jpeg", "image/png",
+// "raster/lerc", "image/qb3", ""
+DLL_PUBLIC extern const char* IMG_NAMES[];
+
+// Given a format name, returns a format type
 DLL_PUBLIC IMG_T getFMT(const char *name);
 
 // Size in bytes
@@ -175,7 +145,8 @@ DLL_PUBLIC ICDDataType getDT(const char* name);
 struct sz5 {
     size_t x, y, z, c, l;
     const bool operator==(const sz5& other) {
-        return (x == other.x) & (y == other.y) & (z == other.z) & (c == other.c) & (l == other.l);
+        return ((x == other.x) && (y == other.y) && (z == other.z)
+            && (c == other.c) && (l == other.l));
     }
     const bool operator!=(const sz5& other) {
         return !operator==(other);
@@ -258,10 +229,18 @@ struct lerc_params : codec_params {
     double prec; // half of quantization step
 };
 
+struct qb3_params : codec_params {
+    qb3_params(const Raster& r) : codec_params(r), mode(-1) {}
+    int mode;
+};
+
 // Generic image decode dispatcher, parameters should be already set to what is expected
 // Returns error message or null.
 DLL_PUBLIC const char* image_peek(const storage_manager& src, Raster& raster);
 DLL_PUBLIC const char* stride_decode(codec_params& params, storage_manager& src, void* buffer);
+
+// TODO: These are bad names because of the prefix matching the library, they should change 
+// to use suffix. Better yet, they should not be part of the public interface.
 
 // In JPEG_codec.cpp
 // raster defines the expected tile
@@ -284,9 +263,21 @@ DLL_PUBLIC const char* png_stride_decode(codec_params& params, storage_manager& 
 DLL_PUBLIC const char* png_encode(png_params& params, storage_manager& src, storage_manager& dst);
 
 // In LERC_codec.cpp
+// LERC1 is the only supported version, reads and writes a single band
+// Internally it gets converted to float, it can be read back as any other type
+
+// lerc_peek teturns data type as float by default, override params.raster.dt if needed
 DLL_PUBLIC const char* lerc_peek(const storage_manager& src, Raster& raster);
+// Remember to set the params.raster.dt to the desired output type
 DLL_PUBLIC const char* lerc_stride_decode(codec_params& params, storage_manager& src, void* buffer);
 DLL_PUBLIC const char* lerc_encode(lerc_params& params, storage_manager& src, storage_manager& dst);
+
+// In QB3_codec.cpp
+DLL_PUBLIC bool has_qb3();
+// These functions return an error message if has_qb3() is false
+DLL_PUBLIC const char* peek_qb3(const storage_manager& src, Raster& raster);
+DLL_PUBLIC const char* stride_decode_qb3(codec_params& params, storage_manager& src, void* buffer);
+DLL_PUBLIC const char* encode_qb3(qb3_params& params, storage_manager& src, storage_manager& dst);
 
 NS_END
 #endif
