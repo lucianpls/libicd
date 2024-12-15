@@ -260,7 +260,7 @@ static int testJPEG12() {
     error /= vsrc.size();
 
     std::cout << "Quality " << p.quality << ": average error " << error << std::endl;
-    // Fail if error is above 3 (should be 2.58 for Q = 85)
+    // Fail if error is above 3 (should be 2.58347 for Q = 85)
     if (p.quality == 85 && error > 3) {
         std::cerr << "Error too high" << std::endl;
         return 1;

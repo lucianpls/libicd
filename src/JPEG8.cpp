@@ -292,7 +292,6 @@ static size_t update_mask(BitMask& mask, void* src, jpeg_params& params)
     return nzeros;
 }
 
-// TODO: Write a Zen chunk if provided in the parameters
 const char *jpeg8_encode(jpeg_params &params, storage_manager &src, storage_manager &dst)
 {
     struct jpeg_compress_struct cinfo;
@@ -300,7 +299,6 @@ const char *jpeg8_encode(jpeg_params &params, storage_manager &src, storage_mana
     JPGHandle jh;
     jpeg_destination_mgr mgr;
     size_t linesize;
-    JSAMPLE *rp[2];
     memset(&jh, 0, sizeof(jh));
 
     mgr.next_output_byte = (JOCTET *)dst.buffer;
@@ -364,6 +362,7 @@ const char *jpeg8_encode(jpeg_params &params, storage_manager &src, storage_mana
 
     const JSAMPROW rowbuffer = reinterpret_cast<JSAMPROW>(src.buffer);
     while (cinfo.next_scanline != cinfo.image_height) {
+        JSAMPLE* rp[2];
         rp[0] = rowbuffer + linesize * cinfo.next_scanline;
         rp[1] = rp[0] + linesize;
         jpeg_write_scanlines(&cinfo, JSAMPARRAY(rp), 2);
