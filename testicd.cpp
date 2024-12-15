@@ -81,7 +81,7 @@ int testPNG() {
 }
 
 // Write and read an RGB JPEG image
-int testJPEG() {
+static int testJPEG8() {
     Raster r = {};
     // x, y, z, c, l
     r.size = { 100, 100, 0, 3, 0 };
@@ -101,6 +101,12 @@ int testJPEG() {
     for (size_t i = 0; i < src.size; i++) {
         ((uint8_t*)src.buffer)[i] = i % 256;
     }
+
+    // Make the first pixel black
+    ((uint8_t*)src.buffer)[0] = 0;
+    ((uint8_t*)src.buffer)[1] = 0;
+    ((uint8_t*)src.buffer)[2] = 0;
+
     // Create an output buffer
     std::vector<uint8_t> vdst(p.get_buffer_size() * 2);
     storage_manager dst(vdst.data(), vdst.size());
@@ -150,9 +156,8 @@ int testJPEG() {
     uint8_t* srcb = (uint8_t*)src.buffer;
     uint8_t* dst2b = (uint8_t*)dst2.buffer;
     size_t hist[256] = { 0 };
-    for (size_t i = 0; i < src.size; i++) {
+    for (size_t i = 0; i < src.size; i++)
         hist[abs(srcb[i] - dst2b[i])]++;
-    }
     //// Print historgram, comma separated
     //for (size_t i = 0; i < 256; i++) {
     //    std::cout << hist[i] << ",";
@@ -166,13 +171,17 @@ int testJPEG() {
     error /= src.size;
 
     std::cout << "Quality " << p.quality << ": average error " << error << std::endl;
-    // Fail if error is above 4 (should be 3.8118 for Q = 85)
+    // Fail if error is above 4 (should be 3.8076 for Q = 85)
     if (p.quality == 85 && error > 4) {
         std::cerr << "Error too high" << std::endl;
         return 1;
     }
 
     return 0;
+}
+
+int testJPEG() {
+    return testJPEG8();
 }
 
 // Write and read a byte LERC raster

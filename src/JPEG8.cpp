@@ -246,6 +246,51 @@ const char *jpeg8_stride_decode(codec_params &params, storage_manager &src, void
     return nullptr; // nullptr on success
 }
 
+
+// The buffer is contiguous, so we can just scan it, count the zero pixels 
+static size_t nzeros(void* src, jpeg_params& params)
+{
+    auto s = reinterpret_cast<JSAMPLE*>(src);
+    size_t nzeros = 0;
+    int w = params.raster.size.x;
+    int h = params.raster.size.y;
+    int bands = params.raster.size.c;
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            bool zero = true;
+            for (int c = 0; c < bands; c++)
+                zero &= (s[c + x * bands] == 0);
+            if (zero)
+                nzeros++;
+        }
+        s += params.line_stride;
+    }
+    return nzeros;
+}
+
+static size_t update_mask(BitMask& mask, void* src, jpeg_params& params)
+{
+    auto s = reinterpret_cast<JSAMPLE*>(src);
+
+    size_t nzeros = 0;
+    int w = mask.getWidth();
+    int h = mask.getHeight();
+    int bands = params.raster.size.c;
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            bool zero = true;
+            for (int c = 0; c < bands; c++)
+                zero &= (s[c + x * bands] == 0);
+            if (zero) {
+                mask.clear(x, y);
+                nzeros++;
+            }
+        }
+        s += params.line_stride;
+    }
+    return nzeros;
+}
+
 // TODO: Write a Zen chunk if provided in the parameters
 const char *jpeg8_encode(jpeg_params &params, storage_manager &src, storage_manager &dst)
 {
@@ -255,7 +300,6 @@ const char *jpeg8_encode(jpeg_params &params, storage_manager &src, storage_mana
     jpeg_destination_mgr mgr;
     size_t linesize;
     JSAMPLE *rp[2];
-
     memset(&jh, 0, sizeof(jh));
 
     mgr.next_output_byte = (JOCTET *)dst.buffer;
@@ -268,6 +312,27 @@ const char *jpeg8_encode(jpeg_params &params, storage_manager &src, storage_mana
     err.error_exit = errorExit;
     err.emit_message = emitMessage;
     auto const& rsize = params.raster.size;
+
+    // This will manage the mask buffer storage
+    std::vector<unsigned char> maskbuff(CHUNK_NAME_SIZE);
+    // If we don't need one, it's just the empty signature
+    memcpy(maskbuff.data(), CHUNK_NAME, CHUNK_NAME_SIZE);
+    jh.zenChunk.buffer = maskbuff.data();
+    jh.zenChunk.size = 0;
+
+    // might need a mask
+    if (nzeros(src.buffer, params) > 0) {
+        BitMask mask(rsize.x, rsize.y);
+        update_mask(mask, src.buffer, params);
+        jh.zenChunk.size = 2 * mask.size();
+        maskbuff.resize(jh.zenChunk.size + CHUNK_NAME_SIZE);
+        jh.zenChunk.buffer = &maskbuff[CHUNK_NAME_SIZE]; // Skip the name
+        mask.set_packer(new RLEC3Packer);
+        mask.store(&jh.zenChunk);
+        // Adjust the zenChunk
+        jh.zenChunk.size += CHUNK_NAME_SIZE;
+        jh.zenChunk.buffer = maskbuff.data();
+    }
 
     jh.message = params.error_message;
     cinfo.client_data = &jh;
@@ -292,6 +357,10 @@ const char *jpeg8_encode(jpeg_params &params, storage_manager &src, storage_mana
     linesize = static_cast<size_t>(cinfo.image_width) * cinfo.num_components;
 
     jpeg_start_compress(&cinfo, TRUE);
+    // Always write the Zen app chunk
+    jpeg_write_marker(&cinfo, JPEG_APP0 + 3, 
+        (JOCTET *)jh.zenChunk.buffer, jh.zenChunk.size);
+
     const JSAMPROW rowbuffer = reinterpret_cast<JSAMPROW>(src.buffer);
     while (cinfo.next_scanline != cinfo.image_height) {
         rp[0] = rowbuffer + linesize * cinfo.next_scanline;
