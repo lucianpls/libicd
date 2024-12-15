@@ -139,7 +139,6 @@ static boolean zenChunkHandler(j_decompress_ptr cinfo) {
 
 const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, void *buffer)
 {
-    JSAMPLE *rp[2]; // Two lines at a time
     static_assert(sizeof(params.error_message) >= JMSG_LENGTH_MAX,
         "Message buffer too small");
     params.error_message[0] = 0; // Clear errors
@@ -183,7 +182,7 @@ const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, voi
     jpeg_read_header(&cinfo, TRUE);
     cinfo.dct_method = JDCT_FLOAT;
 
-    const sz5& size = params.raster.size;
+    auto const& size = params.raster.size;
     if (!(size.c == 1 || size.c == 3))
         sprintf(params.error_message, "JPEG with wrong number of components");
 
@@ -196,6 +195,7 @@ const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, voi
     if (cinfo.image_width != size.x || cinfo.image_height != size.y)
         sprintf(params.error_message, "Wrong JPEG size on input");
 
+    // In bytes
     auto line_stride = params.line_stride;
     if (0 == line_stride) // use default stride
         line_stride = getTypeSize(params.raster.dt, size.c * size.x);
@@ -206,9 +206,10 @@ const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, voi
         cinfo.out_color_space = (size.c == 3) ? JCS_RGB : JCS_GRAYSCALE;
         jpeg_start_decompress(&cinfo);
         while (cinfo.output_scanline < cinfo.image_height) {
+            JSAMPLE* rp[2]; // Two lines at a time
             // Do the math in bytes, because line_stride is in bytes
-            rp[0] = (JSAMPROW)((char *)buffer + line_stride * cinfo.output_scanline);
-            rp[1] = rp[0] + line_stride;
+            rp[0] = (JSAMPROW)((char*)buffer + line_stride * cinfo.output_scanline);
+            rp[1] = (JSAMPROW)((char*)buffer + line_stride * (1 + cinfo.output_scanline));
             jpeg_read_scanlines(&cinfo, JSAMPARRAY(rp), 2);
         }
 

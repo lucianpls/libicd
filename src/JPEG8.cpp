@@ -138,7 +138,6 @@ static boolean zenChunkHandler(j_decompress_ptr cinfo) {
 
 const char *jpeg8_stride_decode(codec_params &params, storage_manager &src, void *buffer)
 {
-    JSAMPLE *rp[2]; // Two lines at a time
     static_assert(sizeof(params.error_message) >= JMSG_LENGTH_MAX,
         "Message buffer too small");
     params.error_message[0] = 0; // Clear errors
@@ -195,6 +194,7 @@ const char *jpeg8_stride_decode(codec_params &params, storage_manager &src, void
     if (cinfo.image_width != rsize.x || cinfo.image_height != rsize.y)
         sprintf(params.error_message, "Wrong JPEG size on input");
 
+    // In bytes
     auto line_stride = params.line_stride;
     if (0 == line_stride)
         line_stride = rsize.c * rsize.x;
@@ -205,6 +205,7 @@ const char *jpeg8_stride_decode(codec_params &params, storage_manager &src, void
         cinfo.out_color_space = (rsize.c == 3) ? JCS_RGB : JCS_GRAYSCALE;
         jpeg_start_decompress(&cinfo);
         while (cinfo.output_scanline < cinfo.image_height) {
+            JSAMPLE* rp[2]; // Two lines at a time
             // Do the math in bytes, because line_stride is in bytes
             rp[0] = (JSAMPROW)((char *)buffer + line_stride * cinfo.output_scanline);
             rp[1] = rp[0] + line_stride;

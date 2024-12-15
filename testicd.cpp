@@ -153,11 +153,9 @@ static int testJPEG8() {
     }
 
     // Compare contents of src and dst2, with some tolerance
-    uint8_t* srcb = (uint8_t*)src.buffer;
-    uint8_t* dst2b = (uint8_t*)dst2.buffer;
     size_t hist[256] = { 0 };
-    for (size_t i = 0; i < src.size; i++)
-        hist[abs(srcb[i] - dst2b[i])]++;
+    for (size_t i = 0; i < vsrc.size(); i++)
+        hist[abs(vsrc[i] - vdst2[i])]++;
     //// Print historgram, comma separated
     //for (size_t i = 0; i < 256; i++) {
     //    std::cout << hist[i] << ",";
@@ -165,9 +163,8 @@ static int testJPEG8() {
 
     // Normalized error
     float error = 0;
-    for (size_t i = 0; i < 256; i++) {
+    for (size_t i = 0; i < 256; i++)
         error += hist[i] * i;
-    }
     error /= src.size;
 
     std::cout << "Quality " << p.quality << ": average error " << error << std::endl;
@@ -180,8 +177,99 @@ static int testJPEG8() {
     return 0;
 }
 
+// Write and read an RGB JPEG image
+static int testJPEG12() {
+    Raster r = {};
+    // x, y, z, c, l
+    r.size = { 100, 100, 0, 3, 0 };
+    r.dt = ICDT_UInt16;
+    // Build a PNG codec
+    jpeg_params p(r);
+    p.quality = 85; // Defaults to 75
+    if (string(p.error_message) != "") {
+        std::cerr << "Error creating JPEG parameters " <<
+            p.error_message << std::endl;
+        return 1;
+    }
+    // Create an input buffer
+    vector<uint16_t> vsrc(p.get_buffer_size() / 2);
+    storage_manager src(vsrc.data(), vsrc.size() * 2);
+    // Fill in with bytes, some pattern that we can tell
+    for (size_t i = 0; i < vsrc.size(); i++)
+        vsrc[i] = i % 4096;
+
+    // Make the first pixel black
+    vsrc[0] = 0;
+    vsrc[1] = 0;
+    vsrc[2] = 0;
+
+    // Create an output buffer
+    std::vector<uint8_t> vdst(p.get_buffer_size() * 2);
+    storage_manager dst(vdst.data(), vdst.size()); // Size in bytes
+
+    // Compress it
+    auto message = jpeg_encode(p, src, dst);
+    if (message != nullptr) {
+        std::cerr << "Error compressing JPEG " <<
+            message << std::endl;
+        return 1;
+    }
+
+    // Announce the size
+    std::cout << "Compressed size: " << dst.size << std::endl;
+
+    // Create a new raster
+    Raster in_raster = {};
+    image_peek(dst, in_raster);
+    // Should be the same size
+    if (in_raster.size != r.size) {
+        std::cerr << "Size mismatch on unpack, " <<
+            in_raster.size.x << " " << in_raster.size.y << " " <<
+            in_raster.size.z << " " << in_raster.size.c << " " <<
+            in_raster.size.l << std::endl;
+        // And the original
+        std::cerr << "Expected " <<
+            r.size.x << " " << r.size.y << " " <<
+            r.size.z << " " << r.size.c << " " <<
+            r.size.l << std::endl;
+        return 1;
+    }
+
+    // decompress it
+    // Create parameters for the decoder
+    codec_params p2(in_raster);
+    // Create an output buffer
+    vector<uint16_t> vdst2(p2.get_buffer_size() / 2);
+    storage_manager dst2(vdst2.data(), vdst2.size() * 2);
+    message = stride_decode(p2, dst, dst2.buffer);
+    if (message != nullptr) {
+        std::cerr << "Error decompressing JPEG " <<
+            message << std::endl;
+        return 1;
+    }
+
+    // Compare contents of src and dst2, with some tolerance
+    size_t hist[4096] = { 0 };
+    for (size_t i = 0; i < vsrc.size(); i++)
+        hist[abs(vsrc[i] - vdst2[i])]++;
+
+    // Normalized error
+    float error = 0;
+    for (size_t i = 0; i < 4096; i++)
+        error += hist[i] * i;
+    error /= vsrc.size();
+
+    std::cout << "Quality " << p.quality << ": average error " << error << std::endl;
+    // Fail if error is above 3 (should be 2.58 for Q = 85)
+    if (p.quality == 85 && error > 3) {
+        std::cerr << "Error too high" << std::endl;
+        return 1;
+    }
+    return 0;
+}
+
 int testJPEG() {
-    return testJPEG8();
+    return testJPEG8() | testJPEG12();
 }
 
 // Write and read a byte LERC raster
