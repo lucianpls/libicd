@@ -52,6 +52,8 @@ template<typename T> static int apply_mask(BitMap2D<> *bm, T *ps, int nc = 3, in
     return count;
 }
 
+typedef BitMap2D<> BitMask;
+
 DLL_LOCAL const char *jpeg8_stride_decode(codec_params &params, storage_manager &src, void *buffer);
 DLL_LOCAL const char *jpeg8_encode(jpeg_params &params, storage_manager &src, storage_manager &dst);
 

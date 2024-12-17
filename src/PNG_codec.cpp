@@ -38,7 +38,7 @@ static void pngWH(png_structp pngp, png_const_charp message)
 {
     codec_params* params = reinterpret_cast<codec_params*>(png_get_error_ptr(pngp));
     strncpy(params->error_message, "WARN:", 1024);
-    strncat(params->error_message + 5, message, 1019);
+    strncpy(params->error_message + 5, message, 1019);
 }
 
 // Error function

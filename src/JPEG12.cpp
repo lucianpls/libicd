@@ -139,7 +139,6 @@ static boolean zenChunkHandler(j_decompress_ptr cinfo) {
 
 const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, void *buffer)
 {
-    JSAMPLE *rp[2]; // Two lines at a time
     static_assert(sizeof(params.error_message) >= JMSG_LENGTH_MAX,
         "Message buffer too small");
     params.error_message[0] = 0; // Clear errors
@@ -183,7 +182,7 @@ const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, voi
     jpeg_read_header(&cinfo, TRUE);
     cinfo.dct_method = JDCT_FLOAT;
 
-    const sz5& size = params.raster.size;
+    auto const& size = params.raster.size;
     if (!(size.c == 1 || size.c == 3))
         sprintf(params.error_message, "JPEG with wrong number of components");
 
@@ -196,6 +195,7 @@ const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, voi
     if (cinfo.image_width != size.x || cinfo.image_height != size.y)
         sprintf(params.error_message, "Wrong JPEG size on input");
 
+    // In bytes
     auto line_stride = params.line_stride;
     if (0 == line_stride) // use default stride
         line_stride = getTypeSize(params.raster.dt, size.c * size.x);
@@ -206,9 +206,10 @@ const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, voi
         cinfo.out_color_space = (size.c == 3) ? JCS_RGB : JCS_GRAYSCALE;
         jpeg_start_decompress(&cinfo);
         while (cinfo.output_scanline < cinfo.image_height) {
+            JSAMPLE* rp[2]; // Two lines at a time
             // Do the math in bytes, because line_stride is in bytes
-            rp[0] = (JSAMPROW)((char *)buffer + line_stride * cinfo.output_scanline);
-            rp[1] = rp[0] + line_stride;
+            rp[0] = (JSAMPROW)((char*)buffer + line_stride * cinfo.output_scanline);
+            rp[1] = (JSAMPROW)((char*)buffer + line_stride * (1 + cinfo.output_scanline));
             jpeg_read_scanlines(&cinfo, JSAMPARRAY(rp), 2);
         }
 
@@ -249,6 +250,50 @@ const char *jpeg12_stride_decode(codec_params &params, storage_manager &src, voi
     return nullptr; // nullptr on success
 }
 
+// The buffer is contiguous, so we can just scan it, count the zero pixels 
+static size_t nzeros(void* src, jpeg_params& params)
+{
+    auto s = reinterpret_cast<JSAMPLE*>(src);
+    size_t nzeros = 0;
+    int w = params.raster.size.x;
+    int h = params.raster.size.y;
+    int bands = params.raster.size.c;
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            bool zero = true;
+            for (int c = 0; c < bands; c++)
+                zero &= (s[c + x * bands] == 0);
+            if (zero)
+                nzeros++;
+        }
+        s += params.line_stride / 2; // Line stride is in bytes, we need to convert to JSAMPLEs
+    }
+    return nzeros;
+}
+
+static size_t update_mask(BitMask& mask, void* src, jpeg_params& params)
+{
+    auto s = reinterpret_cast<JSAMPLE*>(src);
+
+    size_t nzeros = 0;
+    int w = mask.getWidth();
+    int h = mask.getHeight();
+    int bands = params.raster.size.c;
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            bool zero = true;
+            for (int c = 0; c < bands; c++)
+                zero &= (s[c + x * bands] == 0);
+            if (zero) {
+                mask.clear(x, y);
+                nzeros++;
+            }
+        }
+        s += params.line_stride / 2;
+    }
+    return nzeros;
+}
+
 // TODO: Write a Zen chunk if provided in the parameters
 const char *jpeg12_encode(jpeg_params &params, storage_manager &src, storage_manager &dst)
 {
@@ -257,8 +302,6 @@ const char *jpeg12_encode(jpeg_params &params, storage_manager &src, storage_man
     JPGHandle jh;
     jpeg_destination_mgr mgr;
     size_t linesize;
-    JSAMPLE *rp[2];
-
     memset(&jh, 0, sizeof(jh));
 
     mgr.next_output_byte = (JOCTET *)dst.buffer;
@@ -270,6 +313,28 @@ const char *jpeg12_encode(jpeg_params &params, storage_manager &src, storage_man
     cinfo.err = jpeg_std_error(&err);
     err.error_exit = errorExit;
     err.emit_message = emitMessage;
+    auto const& rsize = params.raster.size;
+
+    // This will manage the mask buffer storage
+    std::vector<unsigned char> maskbuff(CHUNK_NAME_SIZE);
+    // If we don't need one, it's just the empty signature
+    memcpy(maskbuff.data(), CHUNK_NAME, CHUNK_NAME_SIZE);
+    jh.zenChunk.buffer = maskbuff.data();
+    jh.zenChunk.size = 0;
+
+    // might need a mask
+    if (nzeros(src.buffer, params) > 0) {
+        BitMask mask(rsize.x, rsize.y);
+        update_mask(mask, src.buffer, params);
+        jh.zenChunk.size = 2 * mask.size();
+        maskbuff.resize(jh.zenChunk.size + CHUNK_NAME_SIZE);
+        jh.zenChunk.buffer = &maskbuff[CHUNK_NAME_SIZE]; // Skip the name
+        mask.set_packer(new RLEC3Packer);
+        mask.store(&jh.zenChunk);
+        // Adjust the zenChunk
+        jh.zenChunk.size += CHUNK_NAME_SIZE;
+        jh.zenChunk.buffer = maskbuff.data();
+    }
 
     jh.message = params.error_message;
     cinfo.client_data = &jh;
@@ -279,7 +344,6 @@ const char *jpeg12_encode(jpeg_params &params, storage_manager &src, storage_man
         jpeg_destroy_compress(&cinfo);
         return params.error_message;
     }
-    auto const& rsize = params.raster.size;
 
     jpeg_create_compress(&cinfo);
     cinfo.dest = &mgr;
@@ -292,11 +356,16 @@ const char *jpeg12_encode(jpeg_params &params, storage_manager &src, storage_man
 
     jpeg_set_quality(&cinfo, params.quality, TRUE);
     cinfo.dct_method = JDCT_FLOAT;
+    // In JSAMPLES
     linesize = cinfo.image_width * cinfo.num_components;
 
     jpeg_start_compress(&cinfo, TRUE);
+    jpeg_write_marker(&cinfo, JPEG_APP0 + 3, 
+        (JOCTET *)jh.zenChunk.buffer, jh.zenChunk.size);
+
     const JSAMPROW rowbuffer = reinterpret_cast<JSAMPROW>(src.buffer);
     while (cinfo.next_scanline != cinfo.image_height) {
+        JSAMPLE* rp[2];
         rp[0] = rowbuffer + linesize * cinfo.next_scanline;
         rp[1] = rp[0] + linesize;
         jpeg_write_scanlines(&cinfo, JSAMPARRAY(rp), 2);
