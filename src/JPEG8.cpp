@@ -3,7 +3,7 @@
 *
 * libahtse JPEG 8bit codec implementation
 *
-* (C) Lucian Plesea 2018
+* (C) Lucian Plesea 2018-2025
 */
 
 #include "JPEG_codec.h"

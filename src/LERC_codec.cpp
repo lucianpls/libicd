@@ -4,7 +4,7 @@
 *
 * Modified from: https://github.com/OSGeo/gdal/blob/master/gdal/frmts/mrf/LERC_band.cpp
 * 
-* (C)Lucian Plesea 2020
+* (C)Lucian Plesea 2020-2025
 * Lerc1 is only little endian, it should not be compiled on big endian machines
 */
 

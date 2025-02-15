@@ -4,7 +4,7 @@
 * libahtse JPEG 12bit codec implementation
 * requires the 12bit libjpeg source in jpeg12-6b subfolder
 *
-* (C) Lucian Plesea 2018
+* (C) Lucian Plesea 2018-2025
 */
 
 #include "JPEG_codec.h"

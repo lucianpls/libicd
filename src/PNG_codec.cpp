@@ -4,7 +4,7 @@
 *
 * This code only handles a basic subset of the PNG capabilities
 *
-* (C)Lucian Plesea 2016-2020
+* (C)Lucian Plesea 2016-2025
 */
 
 #include "libicd_export.h"
