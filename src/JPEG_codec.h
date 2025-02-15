@@ -9,6 +9,7 @@
 #if !defined(JPEG_CODEC_H)
 #define JPEG_CODEC_H
 
+#include "libicd_export.h"
 #include "icd_codecs.h"
 #include "BitMask2D.h"
 #include <setjmp.h>

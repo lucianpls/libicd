@@ -148,7 +148,7 @@ include(GenerateExportHeader)
 generate_export_header(${PROJECT_NAME})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES 
-    PUBLIC_HEADER "src/icd_codecs.h;${CMAKE_CURRENT_BINARY_DIR}/libicd_export.h"
+    PUBLIC_HEADER src/icd_codecs.h
     DEBUG_POSTFIX "d"
     PREFIX ""
 )

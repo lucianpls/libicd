@@ -5,10 +5,8 @@
 * No include dependencies on apr or http
 * No include dependencies on actual codec libraries
 *
-* (C) Lucian Plesea 2019-2021
+* (C) Lucian Plesea 2019-2025
 */
-
-#pragma once
 
 #if !defined(ICD_CODECS_H)
 #define ICD_CODECS_H
@@ -16,15 +14,17 @@
 #include <cstdint>
 #include <cstddef>
 
-#if !defined(NS_ICD_START)
 #define NS_ICD_START namespace ICD {
 #define NS_END }
 #define NS_ICD_USE using namespace ICD;
-#endif
 
-#include "libicd_export.h"
+#if !defined(LIBICD_EXPORT)
+#define DLL_PUBLIC
+#define DLL_LOCAL
+#else
 #define DLL_PUBLIC LIBICD_EXPORT
 #define DLL_LOCAL LIBICD_NO_EXPORT
+#endif
 
 #if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #define IS_BIGENDIAN

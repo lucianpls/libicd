@@ -8,6 +8,7 @@
 * Lerc1 is only little endian, it should not be compiled on big endian machines
 */
 
+#include "libicd_export.h"
 #include "icd_codecs.h"
 #if !defined(NEED_SWAP)
 #error Lerc 1 only works in little endian
