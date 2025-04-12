@@ -137,9 +137,7 @@ target_sources(${PROJECT_NAME} PRIVATE ${ICD_SOURCES} ${ICD_HEADERS})
 target_include_directories(${PROJECT_NAME}
     PRIVATE
         ${JPEG_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS} ${libQB3_INCLUDE_DIRS}
-    PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${JPEG_LIBRARIES} ${PNG_LIBRARIES})
@@ -193,9 +191,10 @@ export(EXPORT "${PROJECT_NAME}Targets"
 )
 
 if (BUILD_TESTING)
-include(CTest)
+    include(CTest)
     add_executable(testicd testicd.cpp)
     target_link_libraries(testicd PRIVATE libicd)
+    target_include_directories(testicd PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
     add_test(NAME testpng COMMAND testicd image/png)
     add_test(NAME testjpeg COMMAND testicd image/jpeg)

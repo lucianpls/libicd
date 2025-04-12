@@ -19,11 +19,7 @@
 #define NS_ICD_USE using namespace ICD;
 
 #if !defined(LIBICD_EXPORT)
-#define DLL_PUBLIC
-#define DLL_LOCAL
-#else
-#define DLL_PUBLIC LIBICD_EXPORT
-#define DLL_LOCAL LIBICD_NO_EXPORT
+#define LIBICD_EXPORT
 #endif
 
 #if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
@@ -131,16 +127,16 @@ enum IMG_T { IMG_ANY = 0, IMG_JPEG, IMG_PNG, IMG_LERC, IMG_QB3, IMG_UNKNOWN };
 // names for the formats
 // "image/*", "image/jpeg", "image/png",
 // "raster/lerc", "image/qb3", ""
-DLL_PUBLIC extern const char* IMG_NAMES[];
+LIBICD_EXPORT extern const char* IMG_NAMES[];
 
 // Given a format name, returns a format type
-DLL_PUBLIC IMG_T getFMT(const char *name);
+LIBICD_EXPORT IMG_T getFMT(const char *name);
 
 // Size in bytes
-DLL_PUBLIC size_t getTypeSize(ICDDataType dt, size_t num = 1);
+LIBICD_EXPORT size_t getTypeSize(ICDDataType dt, size_t num = 1);
 
 // Return a data type by name
-DLL_PUBLIC ICDDataType getDT(const char* name);
+LIBICD_EXPORT ICDDataType getDT(const char* name);
 
 struct sz5 {
     size_t x, y, z, c, l;
@@ -168,7 +164,7 @@ struct Raster {
     ICDDataType dt;
     IMG_T format;
     // Populates size from a compressed source
-    const char* init(const storage_manager& src);
+    LIBICD_EXPORT const char* init(const storage_manager& src);
 };
 
 //
@@ -177,7 +173,7 @@ struct Raster {
 // For encoders, see format specific extensions below
 //
 struct codec_params {
-    DLL_PUBLIC codec_params(const Raster& r) :
+    LIBICD_EXPORT codec_params(const Raster& r) :
         raster(r),
         line_stride(0),
         error_message(""),
@@ -185,11 +181,11 @@ struct codec_params {
     { reset(); }
 
     // Call if modifying the raster
-    DLL_PUBLIC void reset() {
+    LIBICD_EXPORT void reset() {
         line_stride = getTypeSize(raster.dt, raster.size.x * raster.size.c);
     }
 
-    DLL_PUBLIC size_t get_buffer_size() const {
+    LIBICD_EXPORT size_t get_buffer_size() const {
         return getTypeSize(raster.dt, raster.size.x * raster.size.y * raster.size.c);
     }
 
@@ -204,12 +200,12 @@ struct codec_params {
 
 // Specialized by format, for encode
 struct jpeg_params : codec_params {
-    DLL_PUBLIC jpeg_params(const Raster& r) : codec_params(r), quality(75) {}
+    LIBICD_EXPORT jpeg_params(const Raster& r) : codec_params(r), quality(75) {}
     int quality;
 };
 
 struct png_params : codec_params {
-    DLL_PUBLIC png_params(const Raster& r);
+    LIBICD_EXPORT png_params(const Raster& r);
 
     // As defined by PNG
     int color_type, bit_depth;
@@ -236,8 +232,8 @@ struct qb3_params : codec_params {
 
 // Generic image decode dispatcher, parameters should be already set to what is expected
 // Returns error message or null.
-DLL_PUBLIC const char* image_peek(const storage_manager& src, Raster& raster);
-DLL_PUBLIC const char* stride_decode(codec_params& params, storage_manager& src, void* buffer);
+LIBICD_EXPORT const char* image_peek(const storage_manager& src, Raster& raster);
+LIBICD_EXPORT const char* stride_decode(codec_params& params, storage_manager& src, void* buffer);
 
 // TODO: These are bad names because of the prefix matching the library, they should change 
 // to use suffix. Better yet, they should not be part of the public interface.
@@ -248,9 +244,9 @@ DLL_PUBLIC const char* stride_decode(codec_params& params, storage_manager& src,
 // buffer is the location of the first byte on the first line of decoded data
 // line_stride is the size of a line in buffer (larger or equal to decoded JPEG line)
 // Returns NULL if everything looks fine, or an error message
-DLL_PUBLIC const char* jpeg_peek(const storage_manager& src, Raster& raster);
-DLL_PUBLIC const char* jpeg_stride_decode(codec_params& params, storage_manager& src, void* buffer);
-DLL_PUBLIC const char* jpeg_encode(jpeg_params& params, storage_manager& src, storage_manager& dst);
+LIBICD_EXPORT const char* jpeg_peek(const storage_manager& src, Raster& raster);
+LIBICD_EXPORT const char* jpeg_stride_decode(codec_params& params, storage_manager& src, void* buffer);
+LIBICD_EXPORT const char* jpeg_encode(jpeg_params& params, storage_manager& src, storage_manager& dst);
 
 // In PNG_codec.cpp
 // raster defines the expected tile
@@ -258,26 +254,26 @@ DLL_PUBLIC const char* jpeg_encode(jpeg_params& params, storage_manager& src, st
 // buffer is the location of the first byte on the first line of decoded data
 // line_stride is the size of a line in buffer (larger or equal to decoded PNG line)
 // Returns NULL if everything looks fine, or an error message
-DLL_PUBLIC const char* png_peek(const storage_manager& src, Raster& raster);
-DLL_PUBLIC const char* png_stride_decode(codec_params& params, storage_manager& src, void* buffer);
-DLL_PUBLIC const char* png_encode(png_params& params, storage_manager& src, storage_manager& dst);
+LIBICD_EXPORT const char* png_peek(const storage_manager& src, Raster& raster);
+LIBICD_EXPORT const char* png_stride_decode(codec_params& params, storage_manager& src, void* buffer);
+LIBICD_EXPORT const char* png_encode(png_params& params, storage_manager& src, storage_manager& dst);
 
 // In LERC_codec.cpp
 // LERC1 is the only supported version, reads and writes a single band
 // Internally it gets converted to float, it can be read back as any other type
 
 // lerc_peek teturns data type as float by default, override params.raster.dt if needed
-DLL_PUBLIC const char* lerc_peek(const storage_manager& src, Raster& raster);
+LIBICD_EXPORT const char* lerc_peek(const storage_manager& src, Raster& raster);
 // Remember to set the params.raster.dt to the desired output type
-DLL_PUBLIC const char* lerc_stride_decode(codec_params& params, storage_manager& src, void* buffer);
-DLL_PUBLIC const char* lerc_encode(lerc_params& params, storage_manager& src, storage_manager& dst);
+LIBICD_EXPORT const char* lerc_stride_decode(codec_params& params, storage_manager& src, void* buffer);
+LIBICD_EXPORT const char* lerc_encode(lerc_params& params, storage_manager& src, storage_manager& dst);
 
 // In QB3_codec.cpp
-DLL_PUBLIC bool has_qb3();
+LIBICD_EXPORT bool has_qb3();
 // These functions return an error message if has_qb3() is false
-DLL_PUBLIC const char* peek_qb3(const storage_manager& src, Raster& raster);
-DLL_PUBLIC const char* stride_decode_qb3(codec_params& params, storage_manager& src, void* buffer);
-DLL_PUBLIC const char* encode_qb3(qb3_params& params, storage_manager& src, storage_manager& dst);
+LIBICD_EXPORT const char* peek_qb3(const storage_manager& src, Raster& raster);
+LIBICD_EXPORT const char* stride_decode_qb3(codec_params& params, storage_manager& src, void* buffer);
+LIBICD_EXPORT const char* encode_qb3(qb3_params& params, storage_manager& src, storage_manager& dst);
 
 NS_END
 #endif
