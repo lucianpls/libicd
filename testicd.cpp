@@ -1,4 +1,4 @@
-#include "src/icd_codecs.h"
+#include "icd_codecs.h"
 #include <iostream>
 #include <vector>
 
@@ -357,6 +357,8 @@ int testLERC() {
     return 0;
 }
 
+#if defined(LIBQB3_FOUND)
+
 // Write and read a QB3 raster
 int testQB3() {
     
@@ -431,6 +433,7 @@ int testQB3() {
 
     return 0;
 }
+#endif
 
 int main(int argc, char** argv) {
     // Takes one argument, the image format mime type

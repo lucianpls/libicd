@@ -34,6 +34,7 @@ Obviously not thread safe while any bit gets modified
 #include <cstring>
 
 // Defines the storage_manager
+#include "libicd_export.h"
 #include "icd_codecs.h"
 
 #if defined(IS_BIGENDIAN)

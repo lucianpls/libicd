@@ -176,7 +176,7 @@ static Byte getLeastUsed(const Byte *src, size_t len) {
 
 // Read from a packed source until the src is exhausted
 // Returns true if all output buffer was filled, 0 otherwise
-DLL_LOCAL int RLEC3Packer::load(storage_manager *src, storage_manager *dst)
+LIBICD_NO_EXPORT int RLEC3Packer::load(storage_manager *src, storage_manager *dst)
 {
     // Use the first char in the input buffer as marker code
     auto s = reinterpret_cast<char*>(src->buffer);
@@ -192,7 +192,7 @@ DLL_LOCAL int RLEC3Packer::load(storage_manager *src, storage_manager *dst)
 // Makes best case marginally worse because the chosen code adds one byte to the output
 //
 
-DLL_LOCAL int RLEC3Packer::store(storage_manager *src, storage_manager *dst)
+LIBICD_NO_EXPORT int RLEC3Packer::store(storage_manager *src, storage_manager *dst)
 {
     auto s = reinterpret_cast<Byte*>(src->buffer);
     auto d = reinterpret_cast<char*>(dst->buffer);

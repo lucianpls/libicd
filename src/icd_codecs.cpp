@@ -1,3 +1,4 @@
+#include "libicd_export.h"
 #include "icd_codecs.h"
 #include <string>
 #include <cctype>
