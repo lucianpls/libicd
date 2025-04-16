@@ -253,9 +253,9 @@ static size_t nzeros(void* src, jpeg_params& params)
 {
     auto s = reinterpret_cast<JSAMPLE*>(src);
     size_t nzeros = 0;
-    int w = params.raster.size.x;
-    int h = params.raster.size.y;
-    int bands = params.raster.size.c;
+    int w = (int)params.raster.size.x;
+    int h = (int)params.raster.size.y;
+    int bands = (int)params.raster.size.c;
     for (int y = 0; y < h; y++) {
         for (int x = 0; x < w; x++) {
             bool zero = true;
@@ -276,7 +276,7 @@ static size_t update_mask(BitMask& mask, void* src, jpeg_params& params)
     size_t nzeros = 0;
     int w = mask.getWidth();
     int h = mask.getHeight();
-    int bands = params.raster.size.c;
+    int bands = (int)params.raster.size.c;
     for (int y = 0; y < h; y++) {
         for (int x = 0; x < w; x++) {
             bool zero = true;
@@ -321,7 +321,7 @@ const char *jpeg8_encode(jpeg_params &params, storage_manager &src, storage_mana
 
     // might need a mask
     if (nzeros(src.buffer, params) > 0) {
-        BitMask mask(rsize.x, rsize.y);
+        BitMask mask((unsigned int)rsize.x, (unsigned int)rsize.y);
         update_mask(mask, src.buffer, params);
         jh.zenChunk.size = 2 * mask.size();
         maskbuff.resize(jh.zenChunk.size + CHUNK_NAME_SIZE);
@@ -358,7 +358,7 @@ const char *jpeg8_encode(jpeg_params &params, storage_manager &src, storage_mana
     jpeg_start_compress(&cinfo, TRUE);
     // Always write the Zen app chunk
     jpeg_write_marker(&cinfo, JPEG_APP0 + 3, 
-        (JOCTET *)jh.zenChunk.buffer, jh.zenChunk.size);
+        (JOCTET *)jh.zenChunk.buffer, (unsigned int)jh.zenChunk.size);
 
     const JSAMPROW rowbuffer = reinterpret_cast<JSAMPROW>(src.buffer);
     while (cinfo.next_scanline != cinfo.image_height) {
